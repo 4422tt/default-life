@@ -373,16 +373,99 @@ button:disabled {
   min-height: 22rem;
   place-items: center;
   align-content: center;
-  gap: 1.4rem;
+  gap: 1rem;
   padding: 2rem;
 }
 
-.dice-stage p {
+.dice-stage-caption {
   margin: 0;
-  color: var(--ink);
-  font-size: 0.88rem;
-  font-weight: 650;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 560;
   letter-spacing: -0.015em;
+}
+
+.worldline-row {
+  display: grid;
+  grid-template-columns: auto minmax(8.5rem, 1fr);
+  align-items: center;
+  gap: clamp(1.25rem, 4vw, 2.2rem);
+  width: min(100%, 25rem);
+}
+
+.worldline-die-button {
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 0.5rem;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  transition: background-color 180ms ease, transform 180ms ease;
+}
+
+.worldline-die-button:hover {
+  background: color-mix(in srgb, var(--surface-soft) 72%, transparent);
+}
+
+.worldline-die-button:active {
+  transform: scale(0.98);
+}
+
+.worldline-die-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.worldline-die-button:disabled {
+  cursor: default;
+  opacity: 0.72;
+}
+
+.worldline-note {
+  min-width: 0;
+  padding: 0.15rem 0 0.25rem 1rem;
+  border-left: 1px solid var(--line);
+}
+
+.worldline-note > span,
+.worldline-note > strong,
+.worldline-note > p,
+.worldline-note > small {
+  display: block;
+}
+
+.worldline-note > span {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+}
+
+.worldline-note > strong {
+  margin-top: 0.4rem;
+  color: var(--ink);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 1.06rem;
+  font-weight: 680;
+  letter-spacing: 0.035em;
+}
+
+.worldline-note > p {
+  margin: 0.78rem 0 0;
+  color: var(--ink);
+  font-size: 0.78rem;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.worldline-note > small {
+  margin-top: 0.32rem;
+  color: var(--muted);
+  font-size: 0.65rem;
+  line-height: 1.45;
 }
 
 .food-dock {
@@ -691,6 +774,12 @@ button:disabled {
   animation: die-idle 4.8s cubic-bezier(0.16, 1, 0.3, 1) infinite;
 }
 
+.pixel-die[data-shifting="true"] .pixel-die-body {
+  animation:
+    die-shift 680ms cubic-bezier(0.16, 1, 0.3, 1),
+    die-idle 4.8s cubic-bezier(0.16, 1, 0.3, 1) 680ms infinite;
+}
+
 .food-sprite {
   position: relative;
   display: inline-block;
@@ -867,6 +956,14 @@ button:disabled {
   38% { transform: translate3d(0, -0.35rem, 0) rotate(2deg); }
   44% { transform: translate3d(0, -0.15rem, 0) rotate(-1deg); }
   50%, 82% { transform: translate3d(0, 0, 0) rotate(1deg); }
+}
+
+@keyframes die-shift {
+  0% { transform: translate3d(0, 0, 0) rotate(-3deg) scale(1); }
+  28% { transform: translate3d(0.18rem, -0.8rem, 0) rotate(13deg) scale(1.04); }
+  58% { transform: translate3d(-0.15rem, -0.28rem, 0) rotate(-10deg) scale(0.98); }
+  82% { transform: translate3d(0.08rem, -0.1rem, 0) rotate(4deg) scale(1.01); }
+  100% { transform: translate3d(0, 0, 0) rotate(-3deg) scale(1); }
 }
 
 .modal-backdrop {
@@ -1111,6 +1208,19 @@ button:disabled {
   .dice-stage {
     min-height: 17.5rem;
     padding: 1.25rem;
+  }
+
+  .worldline-row {
+    grid-template-columns: minmax(7.5rem, auto) minmax(7.5rem, 1fr);
+    gap: 0.75rem;
+  }
+
+  .worldline-die-button {
+    padding: 0.25rem;
+  }
+
+  .worldline-note {
+    padding-left: 0.8rem;
   }
 
   .pixel-die:not([data-compact="true"]) {

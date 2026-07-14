@@ -68,6 +68,22 @@ import type {
 
 type MainView = "today" | "defaults" | "history" | "settings";
 type TodayFlow = "home" | "context" | "recommendation" | "feedback";
+
+function localDateKey() {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${now.getFullYear()}-${month}-${day}`;
+}
+
+function worldlineHash(value: string) {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
 type DefaultsFlow = "pool" | "import";
 
 const defaultContext: DecisionContext = {
@@ -315,11 +331,25 @@ function HomeView({
   onBegin: () => void;
   onOpenDefaults: () => void;
 }) {
+  const [worldlineDay, setWorldlineDay] = useState("default-life");
+  const [worldlineOffset, setWorldlineOffset] = useState(0);
   const activeOptions = options.filter((option) => option.active);
   const lastDecision = [...decisions].sort((a, b) => b.completedAt.localeCompare(a.completedAt))[0];
   const canBegin = activeOptions.length > 0;
   const previewOption = activeOptions.find((option) => option.id === lastDecision?.selectedId) ?? activeOptions[0];
-  const previewFoods = activeOptions.slice(0, 3);
+  const dailySeed = useMemo(() => worldlineHash(worldlineDay), [worldlineDay]);
+  const worldlineNumber = String((dailySeed + worldlineOffset * 48271) % 1_000_000).padStart(6, "0");
+  const worldlineOption = activeOptions.length > 0
+    ? activeOptions[(dailySeed + worldlineOffset) % activeOptions.length]
+    : undefined;
+  const previewFoods = worldlineOption
+    ? [worldlineOption, ...activeOptions.filter((option) => option.id !== worldlineOption.id)].slice(0, 3)
+    : [];
+
+  useEffect(() => {
+    setWorldlineDay(localDateKey());
+    setWorldlineOffset(0);
+  }, []);
 
   return (
     <div className="home-page screen-enter">
@@ -345,8 +375,25 @@ function HomeView({
             <span>{activeOptions.length} 个默认值</span>
           </div>
           <div className="dice-stage">
-            <PixelDie />
-            <p>把重复选择，交给系统。</p>
+            <div className="worldline-row">
+              <button
+                className="worldline-die-button"
+                type="button"
+                onClick={() => setWorldlineOffset((current) => current + 1)}
+                disabled={!canBegin}
+                aria-label="掷骰子，切换今天的世界线"
+                title="掷一次骰子"
+              >
+                <PixelDie key={worldlineOffset} shifting={worldlineOffset > 0} />
+              </button>
+              <div className="worldline-note" aria-live="polite">
+                <span>今天的世界线</span>
+                <strong>#{worldlineNumber}</strong>
+                <p>午餐：{worldlineOption?.name ?? "等待默认值"}</p>
+                <small>同一套偏好，另一种展开。</small>
+              </div>
+            </div>
+            <p className="dice-stage-caption">把重复选择，交给系统。</p>
           </div>
           <div className="food-dock" aria-label="当前可选的食物">
             {previewFoods.map((option) => (

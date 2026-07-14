@@ -20,12 +20,21 @@ export function FoodSprite({ name, size = "md" }: { name: string; size?: FoodSpr
   );
 }
 
-export function PixelDie({ compact = false, animated = true }: { compact?: boolean; animated?: boolean }) {
+export function PixelDie({
+  compact = false,
+  animated = true,
+  shifting = false,
+}: {
+  compact?: boolean;
+  animated?: boolean;
+  shifting?: boolean;
+}) {
   return (
     <span
       className="pixel-die"
       data-compact={compact}
       data-animated={animated}
+      data-shifting={shifting}
       role="img"
       aria-label="黑色像素骰子"
     >
