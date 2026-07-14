@@ -1564,36 +1564,104 @@ button:disabled {
   height: 18.5rem;
 }
 
-.p1-die-trigger .pixel-die-illustration {
-  display: grid;
-  place-items: center;
-  overflow: visible;
-}
-
-.p1-die-trigger .pixel-die-illustration img {
+.p1-die-trigger .pixel-die-cube {
   display: block;
-  width: 100%;
-  height: auto;
+  overflow: visible;
+  perspective: 46rem;
+  isolation: isolate;
+}
+
+.pixel-die-cube-anchor {
+  position: absolute;
+  top: 46%;
+  left: 50%;
+  display: block;
+  width: 10.4rem;
+  height: 10.4rem;
+  transform: translate(-50%, -50%);
+  transform-style: preserve-3d;
+}
+
+.pixel-die-cube-inner {
+  position: absolute;
+  inset: 0;
+  display: block;
+  transform: rotateX(22deg) rotateY(45deg);
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.pixel-die-cube[data-rolling="true"] .pixel-die-cube-inner {
+  animation: p1-cube-roll 1.12s cubic-bezier(0.2, 0.72, 0.18, 1) both;
+}
+
+.pixel-die-face {
+  position: absolute;
+  inset: 0;
+  display: block;
+  overflow: hidden;
+  border: 4px solid #0b0c0e;
+  background: #17181a;
+  box-shadow: inset 0.34rem 0.34rem 0 rgb(255 255 255 / 0.055), inset -0.42rem -0.42rem 0 rgb(0 0 0 / 0.28);
+  backface-visibility: hidden;
   image-rendering: pixelated;
-  transform-origin: 50% 58%;
-  animation: p1-die-hover 4.8s ease-in-out infinite;
 }
 
-.p1-die-trigger .pixel-die-illustration[data-rolling="true"] img {
-  animation: p1-die-roll 1.12s cubic-bezier(0.22, 0.78, 0.22, 1) both;
+.pixel-die-face-front { transform: translateZ(5.2rem); }
+.pixel-die-face-back { transform: rotateY(180deg) translateZ(5.2rem); }
+.pixel-die-face-right { background: #111214; transform: rotateY(90deg) translateZ(5.2rem); }
+.pixel-die-face-left { background: #101113; transform: rotateY(-90deg) translateZ(5.2rem); }
+.pixel-die-face-top { background: #222428; transform: rotateX(90deg) translateZ(5.2rem); }
+.pixel-die-face-bottom { background: #0d0e10; transform: rotateX(-90deg) translateZ(5.2rem); }
+
+.pixel-cube-pip {
+  position: absolute;
+  display: block;
+  width: 1.12rem;
+  height: 1.12rem;
+  clip-path: polygon(25% 0, 75% 0, 75% 25%, 100% 25%, 100% 75%, 75% 75%, 75% 100%, 25% 100%, 25% 75%, 0 75%, 0 25%, 25% 25%);
+  background: #f7f7f3;
+  box-shadow: 0.18rem 0.18rem 0 rgb(196 199 202 / 0.55);
 }
 
-@keyframes p1-die-hover {
-  0%, 100% { transform: translateY(0) rotate(-1deg); }
-  50% { transform: translateY(-0.32rem) rotate(1.2deg); }
+.pixel-cube-pip-top-left { top: 17%; left: 17%; }
+.pixel-cube-pip-top-right { top: 17%; right: 17%; }
+.pixel-cube-pip-middle-left { top: 50%; left: 17%; transform: translateY(-50%); }
+.pixel-cube-pip-middle-right { top: 50%; right: 17%; transform: translateY(-50%); }
+.pixel-cube-pip-center { top: 50%; left: 50%; transform: translate(-50%, -50%); }
+.pixel-cube-pip-bottom-left { bottom: 17%; left: 17%; }
+.pixel-cube-pip-bottom-right { right: 17%; bottom: 17%; }
+
+.pixel-die-ground-shadow {
+  position: absolute;
+  right: 3.1rem;
+  bottom: 2.7rem;
+  left: 3.1rem;
+  display: block;
+  height: 1.15rem;
+  border-radius: 50%;
+  background: rgb(29 31 34 / 0.15);
+  filter: blur(5px);
+  transform-origin: center;
 }
 
-@keyframes p1-die-roll {
-  0% { transform: translateY(0) rotate(0) scale(1); }
-  20% { transform: translateY(-1.05rem) rotate(-30deg) scale(1.04); }
-  62% { transform: translateY(-0.2rem) rotate(630deg) scale(0.98); }
-  82% { transform: translateY(0.18rem) rotate(708deg) scale(1.02); }
-  100% { transform: translateY(0) rotate(720deg) scale(1); }
+.pixel-die-cube[data-rolling="true"] .pixel-die-ground-shadow {
+  animation: p1-cube-shadow-roll 1.12s ease-out both;
+}
+
+@keyframes p1-cube-roll {
+  0% { transform: translate3d(0, 0, 0) rotateX(22deg) rotateY(45deg) rotateZ(0); }
+  24% { transform: translate3d(0, -1.75rem, 0) rotateX(188deg) rotateY(174deg) rotateZ(18deg); }
+  58% { transform: translate3d(0, -2.9rem, 0) rotateX(486deg) rotateY(548deg) rotateZ(-20deg); }
+  82% { transform: translate3d(0, -0.2rem, 0) rotateX(664deg) rotateY(644deg) rotateZ(7deg); }
+  92% { transform: translate3d(0, 0.22rem, 0) rotateX(726deg) rotateY(752deg) rotateZ(-2deg); }
+  100% { transform: translate3d(0, 0, 0) rotateX(742deg) rotateY(765deg) rotateZ(0); }
+}
+
+@keyframes p1-cube-shadow-roll {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  58% { opacity: 0.34; transform: scale(0.58); }
+  92% { opacity: 0.86; transform: scale(1.08); }
 }
 
 .p1-die-shadow {

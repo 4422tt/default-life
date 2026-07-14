@@ -57,14 +57,58 @@ export function PixelDie({
 
   return (
     <span
-      className="pixel-die pixel-die-illustration"
+      className="pixel-die pixel-die-cube"
       data-compact="false"
       data-animated={animated}
       data-rolling={rolling || shifting}
+      data-value={value}
       role="img"
       aria-label={`黑色像素骰子，当前点数 ${value}`}
     >
-      <img src={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/assets/pixel-die-isometric.png`} alt="" />
+      <span className="pixel-die-ground-shadow" aria-hidden="true" />
+      <span className="pixel-die-cube-anchor" aria-hidden="true">
+        <span className="pixel-die-cube-inner">
+          {diceFaces(value).map((face) => (
+            <DiceFace key={face.side} side={face.side} value={face.value} />
+          ))}
+        </span>
+      </span>
+    </span>
+  );
+}
+
+type DiceSide = "front" | "back" | "right" | "left" | "top" | "bottom";
+
+function diceFaces(value: number): Array<{ side: DiceSide; value: number }> {
+  const safeValue = Math.min(6, Math.max(1, Math.round(value)));
+  const oppositePairs = [[1, 6], [2, 5], [3, 4]] as const;
+  const remainingPairs = oppositePairs.filter((pair) => !(pair as readonly number[]).includes(safeValue));
+
+  return [
+    { side: "front", value: safeValue },
+    { side: "back", value: 7 - safeValue },
+    { side: "right", value: remainingPairs[0][0] },
+    { side: "left", value: remainingPairs[0][1] },
+    { side: "top", value: remainingPairs[1][0] },
+    { side: "bottom", value: remainingPairs[1][1] },
+  ];
+}
+
+function DiceFace({ side, value }: { side: DiceSide; value: number }) {
+  const positions = {
+    1: ["center"],
+    2: ["top-left", "bottom-right"],
+    3: ["top-left", "center", "bottom-right"],
+    4: ["top-left", "top-right", "bottom-left", "bottom-right"],
+    5: ["top-left", "top-right", "center", "bottom-left", "bottom-right"],
+    6: ["top-left", "top-right", "middle-left", "middle-right", "bottom-left", "bottom-right"],
+  } as const;
+
+  return (
+    <span className={`pixel-die-face pixel-die-face-${side}`} data-face-value={value}>
+      {positions[value as keyof typeof positions].map((position) => (
+        <span className={`pixel-cube-pip pixel-cube-pip-${position}`} key={position} />
+      ))}
     </span>
   );
 }
