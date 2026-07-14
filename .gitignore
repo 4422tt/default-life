@@ -1,0 +1,19 @@
+# dependencies
+/node_modules
+/.pnpm-store
+
+# next.js
+/.next
+/out
+
+# testing
+/coverage
+
+# local files
+.DS_Store
+*.log
+*.tsbuildinfo
+
+# environment
+.env*
+!.env.example
