@@ -24,28 +24,47 @@ export function PixelDie({
   compact = false,
   animated = true,
   shifting = false,
+  rolling = false,
+  value = 5,
 }: {
   compact?: boolean;
   animated?: boolean;
   shifting?: boolean;
+  rolling?: boolean;
+  value?: number;
 }) {
+  if (compact) {
+    return (
+      <span
+        className="pixel-die"
+        data-compact="true"
+        data-animated={animated}
+        data-shifting={shifting}
+        role="img"
+        aria-label="黑色像素骰子"
+      >
+        <span className="pixel-die-shadow" />
+        <span className="pixel-die-body">
+          <span className="pixel-pip pixel-pip-1" />
+          <span className="pixel-pip pixel-pip-2" />
+          <span className="pixel-pip pixel-pip-3" />
+          <span className="pixel-pip pixel-pip-4" />
+          <span className="pixel-pip pixel-pip-5" />
+        </span>
+      </span>
+    );
+  }
+
   return (
     <span
-      className="pixel-die"
-      data-compact={compact}
+      className="pixel-die pixel-die-illustration"
+      data-compact="false"
       data-animated={animated}
-      data-shifting={shifting}
+      data-rolling={rolling || shifting}
       role="img"
-      aria-label="黑色像素骰子"
+      aria-label={`黑色像素骰子，当前点数 ${value}`}
     >
-      <span className="pixel-die-shadow" />
-      <span className="pixel-die-body">
-        <span className="pixel-pip pixel-pip-1" />
-        <span className="pixel-pip pixel-pip-2" />
-        <span className="pixel-pip pixel-pip-3" />
-        <span className="pixel-pip pixel-pip-4" />
-        <span className="pixel-pip pixel-pip-5" />
-      </span>
+      <img src={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/assets/pixel-die-isometric.png`} alt="" />
     </span>
   );
 }

@@ -1560,27 +1560,40 @@ button:disabled {
 }
 
 .p1-die-trigger .pixel-die {
-  width: 11rem;
-  height: 11rem;
+  width: 18.5rem;
+  height: 18.5rem;
 }
 
-.p1-die-trigger .pixel-die-body {
-  inset: 0.45rem;
-  clip-path: polygon(14% 0, 86% 0, 86% 7%, 93% 7%, 93% 14%, 100% 14%, 100% 86%, 93% 86%, 93% 93%, 86% 93%, 86% 100%, 14% 100%, 14% 93%, 7% 93%, 7% 86%, 0 86%, 0 14%, 7% 14%, 7% 7%, 14% 7%);
-  background: #161616;
-  box-shadow: none;
+.p1-die-trigger .pixel-die-illustration {
+  display: grid;
+  place-items: center;
+  overflow: visible;
 }
 
-.p1-die-trigger .pixel-die-shadow {
-  display: none;
+.p1-die-trigger .pixel-die-illustration img {
+  display: block;
+  width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+  transform-origin: 50% 58%;
+  animation: p1-die-hover 4.8s ease-in-out infinite;
 }
 
-.p1-die-trigger .pixel-pip {
-  width: 1.1rem;
-  height: 1.1rem;
-  border-radius: 0;
-  background: #ffffff;
-  box-shadow: none;
+.p1-die-trigger .pixel-die-illustration[data-rolling="true"] img {
+  animation: p1-die-roll 1.12s cubic-bezier(0.22, 0.78, 0.22, 1) both;
+}
+
+@keyframes p1-die-hover {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-0.32rem) rotate(1.2deg); }
+}
+
+@keyframes p1-die-roll {
+  0% { transform: translateY(0) rotate(0) scale(1); }
+  20% { transform: translateY(-1.05rem) rotate(-30deg) scale(1.04); }
+  62% { transform: translateY(-0.2rem) rotate(630deg) scale(0.98); }
+  82% { transform: translateY(0.18rem) rotate(708deg) scale(1.02); }
+  100% { transform: translateY(0) rotate(720deg) scale(1); }
 }
 
 .p1-die-shadow {
@@ -1637,24 +1650,15 @@ button:disabled {
   display: grid;
   min-height: 12.6rem;
   place-items: center;
-  padding-top: 0.45rem;
+  padding: 0.4rem 0.65rem 0;
 }
 
-.p1-choice-food .food-sprite {
-  width: 8.8rem;
-  height: 8.8rem;
-  overflow: visible;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-}
-
-.p1-choice-food .food-sprite-shadow {
-  right: 13%;
-  left: 13%;
-  height: 8%;
-  background: #c4c7ca;
+.p1-choice-food-image {
+  display: block;
+  width: 11.1rem;
+  max-width: 100%;
+  height: auto;
+  image-rendering: pixelated;
 }
 
 .p1-choice-card h2 {
@@ -1871,11 +1875,34 @@ button:disabled {
 
 .p1-character-sprite {
   position: absolute;
-  right: -0.7rem;
-  top: 2.9rem;
-  width: min(14rem, 125%);
+  right: -5.25rem;
+  top: -1.25rem;
+  width: 25rem;
+  image-rendering: pixelated;
+}
+
+.p1-character-sprite img {
+  display: block;
+  width: 100%;
   height: auto;
   image-rendering: pixelated;
+}
+
+.p1-typing-hands {
+  position: absolute;
+  top: 52.5%;
+  left: 46.5%;
+  width: 0.48rem;
+  height: 0.28rem;
+  background: #efc3a5;
+  box-shadow: 0.52rem 0 #efc3a5, 1.04rem 0 #efc3a5, 1.56rem 0 #efc3a5;
+  opacity: 0.8;
+  animation: p1-typing-tap 360ms steps(2, end) infinite alternate;
+}
+
+@keyframes p1-typing-tap {
+  from { transform: translateY(0); }
+  to { transform: translateY(0.15rem); }
 }
 
 .p1-afterword {

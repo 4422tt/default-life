@@ -483,6 +483,9 @@ function HomeView({
   const [worldlineDay, setWorldlineDay] = useState("default-life");
   const [worldlineOffset, setWorldlineOffset] = useState(0);
   const [character, setCharacter] = useState<"girl" | "boy">("girl");
+  const [diceValue, setDiceValue] = useState(5);
+  const [isDiceRolling, setIsDiceRolling] = useState(false);
+  const diceTimerRef = useRef<number | null>(null);
   const activeOptions = options.filter((option) => option.active);
   const lastDecision = [...decisions].sort((a, b) => b.completedAt.localeCompare(a.completedAt))[0];
   const canBegin = activeOptions.length > 0;
@@ -493,12 +496,30 @@ function HomeView({
     ? activeOptions[(dailySeed + worldlineOffset) % activeOptions.length]
     : undefined;
   const selectedOption = worldlineOption ?? previewOption;
+  const featuredOption = activeOptions.find((option) => /麻辣烫|火锅|冒菜/.test(option.name)) ?? selectedOption;
   const assetBasePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
   const startToday = canBegin ? onBegin : onOpenDefaults;
+
+  const rollDice = () => {
+    if (isDiceRolling) return;
+    const nextValue = Math.floor(Math.random() * 6) + 1;
+    setDiceValue(nextValue);
+    setWorldlineOffset((current) => current + nextValue);
+    setIsDiceRolling(true);
+    if (diceTimerRef.current !== null) window.clearTimeout(diceTimerRef.current);
+    diceTimerRef.current = window.setTimeout(() => {
+      setIsDiceRolling(false);
+      diceTimerRef.current = null;
+    }, 1120);
+  };
 
   useEffect(() => {
     setWorldlineDay(localDateKey());
     setWorldlineOffset(0);
+  }, []);
+
+  useEffect(() => () => {
+    if (diceTimerRef.current !== null) window.clearTimeout(diceTimerRef.current);
   }, []);
 
   return (
@@ -532,8 +553,8 @@ function HomeView({
             <button
               className="p1-button p1-button-secondary"
               type="button"
-              onClick={() => setWorldlineOffset((current) => current + 1)}
-              disabled={!canBegin}
+              onClick={rollDice}
+              disabled={isDiceRolling}
             >
               掷一次骰子
             </button>
@@ -544,25 +565,32 @@ function HomeView({
           <button
             className="p1-die-trigger"
             type="button"
-            onClick={() => setWorldlineOffset((current) => current + 1)}
-            disabled={!canBegin}
-            aria-label="掷骰子，切换今天的世界线"
+            onClick={rollDice}
+            disabled={isDiceRolling}
+            aria-label="掷骰子，生成今天的世界线和点数"
             title={`今天的世界线 #${worldlineNumber}`}
           >
-            <PixelDie key={worldlineOffset} shifting={worldlineOffset > 0} />
+            <PixelDie value={diceValue} rolling={isDiceRolling} />
           </button>
-          <span className="p1-die-shadow" aria-hidden="true" />
           <p className="p1-dice-status" aria-live="polite">
-            {worldlineOffset === 0 ? "命运正在生成..." : `世界线 #${worldlineNumber}`}
+            {isDiceRolling
+              ? "骰子正在滚动..."
+              : worldlineOffset === 0
+                ? "命运正在生成..."
+                : `骰子结果：${diceValue}，世界线 #${worldlineNumber}`}
           </p>
         </div>
 
         <aside className="p1-choice-card" aria-label="今日选择">
           <header><span>今日选择</span><span aria-hidden="true">•••</span></header>
           <div className="p1-choice-food">
-            <FoodSprite name={selectedOption?.name ?? "麻辣烫"} size="lg" />
+            <img
+              className="p1-choice-food-image"
+              src={`${assetBasePath}/assets/pixel-malatang-bowl.png`}
+              alt="一碗麻辣烫像素插画"
+            />
           </div>
-          <h2>{selectedOption?.name ?? "建立默认池"}</h2>
+          <h2>{featuredOption?.name ?? "楼下麻辣烫"}</h2>
           <p>已从「美食默认池」中选择</p>
           <footer><CheckCircle size={16} weight="fill" /> 已决定</footer>
         </aside>
@@ -604,11 +632,13 @@ function HomeView({
             <button type="button" className={character === "boy" ? "is-active" : ""} onClick={() => setCharacter("boy")}>男孩</button>
             <button type="button" className={character === "girl" ? "is-active" : ""} onClick={() => setCharacter("girl")}>女孩</button>
           </div>
-          <img
-            className="p1-character-sprite"
-            src={`${assetBasePath}/assets/life-character-${character}-ip.png`}
-            alt={character === "girl" ? "黄发黑色穿搭的成年女性像素角色" : "棕发蓝色上衣的成年男性像素角色"}
-          />
+          <div className="p1-character-sprite">
+            <img
+              src={`${assetBasePath}/assets/life-character-${character}-typing.png`}
+              alt={character === "girl" ? "棕色长发、眼镜、猫耳和黑色穿搭的成年女性像素角色正在敲电脑" : "棕发蓝色上衣的成年男性像素角色正在敲电脑"}
+            />
+            <span className="p1-typing-hands" aria-hidden="true" />
+          </div>
         </aside>
       </section>
 
