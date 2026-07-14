@@ -1,69 +1,87 @@
-import type { LifeImportAnalysis, LifeImportCandidate } from "@/lib/types";
+import { orderMergeKey } from "@/lib/order-normalization";
+import type { LifeImportAnalysis, LifeImportCandidate, PriceLevel } from "@/lib/types";
+import type { OrderImportResult, RecognizedOrderItem } from "@/types/order-import";
 
-export interface ImportImageDescriptor {
-  name: string;
-  size: number;
-  type: string;
+function stableId(value: string) {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `order-${(hash >>> 0).toString(36)}`;
 }
 
-const candidateTemplates: Omit<LifeImportCandidate, "frequency">[] = [
-  {
-    id: "import-beef-rice",
-    name: "番茄牛腩饭",
-    kind: "delivery",
-    priceLevel: 2,
-    love: 5,
-    health: 4,
-    etaMinutes: 28,
-    weatherTags: ["cold", "rain", "normal"],
-    energyTags: ["low", "normal"],
-    companionTags: ["solo", "friends"],
-  },
-  {
-    id: "import-ramen",
-    name: "日式豚骨拉面",
-    kind: "restaurant",
-    priceLevel: 2,
-    love: 4,
-    health: 3,
-    etaMinutes: 30,
-    weatherTags: ["cold", "rain", "normal"],
-    energyTags: ["normal", "high"],
-    companionTags: ["solo", "friends"],
-  },
-  {
-    id: "import-malatang",
-    name: "楼下麻辣烫",
-    kind: "restaurant",
-    priceLevel: 1,
-    love: 4,
-    health: 3,
-    etaMinutes: 18,
-    weatherTags: ["hot", "cold", "rain", "normal"],
-    energyTags: ["low", "normal"],
-    companionTags: ["solo", "friends"],
-  },
-];
+function priceLevel(item: RecognizedOrderItem): PriceLevel {
+  const amount = item.paidAmount ?? item.unitPrice ?? null;
+  if (amount === null || amount < 20) return 1;
+  if (amount <= 50) return 2;
+  return 3;
+}
 
-export function analyzeLifeImages(images: ImportImageDescriptor[]): LifeImportAnalysis {
-  const imageCount = Math.max(1, images.length);
-  const frequencies = [imageCount * 4, imageCount * 2 + 2, imageCount * 2];
+export function createLifeImportAnalysis(result: OrderImportResult): LifeImportAnalysis {
+  const grouped = new Map<string, LifeImportCandidate>();
+
+  result.items.forEach((item) => {
+    const key = orderMergeKey(item);
+    const existing = grouped.get(key);
+    if (existing) {
+      existing.frequency += 1;
+      existing.quantity = (existing.quantity ?? 0) + item.quantity;
+      existing.confidence = Math.min(existing.confidence ?? 1, item.confidence);
+      return;
+    }
+
+    grouped.set(key, {
+      id: stableId(`${key}::${item.sourceImageId}`),
+      name: item.dishName,
+      frequency: 1,
+      quantity: item.quantity,
+      merchantName: item.merchantName,
+      unitPrice: item.unitPrice ?? null,
+      paidAmount: item.paidAmount ?? null,
+      category: item.category ?? null,
+      confidence: item.confidence,
+      sourceImageId: item.sourceImageId,
+      sourceFileName: item.sourceFileName,
+      kind: "delivery",
+      priceLevel: priceLevel(item),
+      love: 3,
+      health: 3,
+      etaMinutes: 30,
+      weatherTags: ["normal"],
+      energyTags: ["normal"],
+      companionTags: ["solo"],
+    });
+  });
+
+  const candidates = [...grouped.values()];
+  const repeatedOrders = candidates.reduce((sum, candidate) => (
+    sum + (candidate.frequency > 1 ? candidate.frequency : 0)
+  ), 0);
+  const familiarShare = result.totalOrders > 0
+    ? Math.round((repeatedOrders / result.totalOrders) * 100)
+    : 0;
+  const keywords = [
+    ...(familiarShare >= 50 ? ["偏好稳定"] : []),
+    ...(result.totalOrders >= 5 ? ["已有选择记录"] : []),
+  ];
+  const flavorText = result.preferenceSummary.flavors.length
+    ? result.preferenceSummary.flavors.join("、")
+    : "暂时没有足够数据判断口味偏好";
 
   return {
-    candidates: candidateTemplates.map((candidate, index) => ({
-      ...candidate,
-      frequency: frequencies[index],
-    })),
+    candidates,
+    totalOrders: result.totalOrders,
     profile: {
-      windowDays: 90,
-      familiarDinnerShare: 68,
-      keywords: ["稳定", "高效", "低决策成本"],
-      taste: "偏辣",
-      budgetLabel: "中预算",
-      dinnerPattern: "30 分钟内解决晚餐",
-      weekdayRule: "快速解决",
-      weekendRule: "探索新口味",
-      insight: "你不是没有选择，只是你的生活已经形成了一套规则。",
+      windowDays: 0,
+      familiarDinnerShare: familiarShare,
+      keywords,
+      taste: flavorText,
+      budgetLabel: result.preferenceSummary.budgetLevel,
+      dinnerPattern: "暂时没有足够数据判断晚餐节奏",
+      weekdayRule: "等待更多真实订单",
+      weekendRule: "等待更多真实订单",
+      insight: "画像只基于你确认导入的真实订单生成。",
     },
   };
 }

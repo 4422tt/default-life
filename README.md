@@ -14,7 +14,7 @@
 - 本地数据：Dexie 与 IndexedDB，无账号、无服务端依赖
 - 数据可控：JSON 导出、恢复和重置示例
 - 界面：桌面侧栏、手机底部导航、明亮、深色和系统主题
-- 生活导入：多图上传、模拟 AI 识别、候选编辑、确认加入和生活画像
+- 生活导入：真实识别接口、多图上传、结果编辑、错误处理、确认后写入和生活画像
 - 人生轨迹：把选择次数、反馈变化和生活导入整理为时间线
 
 ## 推荐规则
@@ -53,7 +53,9 @@ pnpm build
 - `app/`：页面入口、主题和全局视觉系统
 - `components/`：主流程、默认池和历史界面
 - `lib/recommendation.ts`：过滤、评分、抽样和解释
-- `lib/import-life.ts`：可替换的图片识别分析接口与本地演示实现
+- `lib/order-recognition.ts`：真实订单识别接口调用与文件校验
+- `lib/order-normalization.ts`：订单规范化、去重与偏好摘要
+- `ORDER_RECOGNITION.md`：服务端接口和 API Key 配置说明
 - `lib/storage.ts`：IndexedDB 写入、反馈和备份
 - `lib/types.ts`：领域模型
 - `tests/`：推荐规则单元测试

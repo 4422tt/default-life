@@ -32,6 +32,12 @@ export interface FoodOption {
   cooldownUntil?: string;
   createdAt: string;
   updatedAt: string;
+  merchantName?: string | null;
+  historicalCount?: number;
+  price?: number | null;
+  category?: string | null;
+  source?: "screenshot-import" | "manual";
+  importedAt?: string;
 }
 
 export interface DecisionContext {
@@ -95,6 +101,14 @@ export interface LifeImportCandidate {
   id: string;
   name: string;
   frequency: number;
+  quantity?: number;
+  merchantName?: string | null;
+  unitPrice?: number | null;
+  paidAmount?: number | null;
+  category?: string | null;
+  confidence?: number;
+  sourceImageId?: string;
+  sourceFileName?: string;
   kind: FoodKind;
   priceLevel: PriceLevel;
   love: LoveLevel;
@@ -120,6 +134,7 @@ export interface LifeProfile {
 export interface LifeImportAnalysis {
   candidates: LifeImportCandidate[];
   profile: LifeProfile;
+  totalOrders?: number;
 }
 
 export interface LifeImportRecord {

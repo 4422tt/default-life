@@ -119,6 +119,8 @@ function OptionCard({ option, onEdit }: { option: FoodOption; onEdit: () => void
           <div className="flex flex-wrap items-center gap-2">
             <span className="option-chip">{kindLabels[option.kind]}</span>
             {option.isSample && <span className="option-chip" data-accent="true">示例</span>}
+            {option.source === "screenshot-import" && <span className="option-chip" data-accent="true">来自截图导入</span>}
+            {option.source === "manual" && <span className="option-chip">手动订单</span>}
             {option.craving && (
               <span className="option-chip" data-accent="true">
                 <Fire size={13} weight="fill" /> 最近想吃
@@ -126,8 +128,9 @@ function OptionCard({ option, onEdit }: { option: FoodOption; onEdit: () => void
             )}
           </div>
           <h2 className="mt-4 truncate text-xl font-semibold tracking-[-0.02em]">{option.name}</h2>
+          {option.merchantName && <p className="mt-1 truncate text-xs text-[var(--muted)]">{option.merchantName}</p>}
           <p className="mt-2 text-sm text-[var(--muted)]">
-            {priceLabels[option.priceLevel]} / 约 {option.etaMinutes} 分钟 / 选过 {option.choiceCount} 次
+            {priceLabels[option.priceLevel]} / 约 {option.etaMinutes} 分钟 / 历史 {option.historicalCount ?? option.choiceCount} 次
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1 text-[var(--accent-strong)]" aria-label={`喜欢程度 ${option.love} 星`}>

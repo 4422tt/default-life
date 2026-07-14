@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { normalizeOrderText } from "@/lib/order-normalization";
 import { sampleOptions } from "@/lib/seed";
 import type {
   AppSettings,
@@ -65,8 +66,8 @@ export async function deleteFoodOption(id: string) {
   await db.options.delete(id);
 }
 
-function normalizedOptionName(value: string) {
-  return value.trim().replace(/\s+/g, "").toLocaleLowerCase("zh-CN");
+function normalizedOptionKey(name: string, merchantName?: string | null) {
+  return `${normalizeOrderText(merchantName ?? "未识别商家")}::${normalizeOrderText(name)}`;
 }
 
 export async function commitLifeImport(args: {
@@ -76,6 +77,7 @@ export async function commitLifeImport(args: {
   candidates: LifeImportCandidate[];
 }) {
   const now = new Date().toISOString();
+  const optionSource = args.source === "screenshots" ? "screenshot-import" : "manual";
   let addedCount = 0;
   let updatedCount = 0;
   let record!: LifeImportRecord;
@@ -85,7 +87,7 @@ export async function commitLifeImport(args: {
 
     for (const candidate of args.candidates) {
       const existing = existingOptions.find(
-        (option) => normalizedOptionName(option.name) === normalizedOptionName(candidate.name),
+        (option) => normalizedOptionKey(option.name, option.merchantName) === normalizedOptionKey(candidate.name, candidate.merchantName),
       );
 
       if (existing) {
@@ -101,7 +103,13 @@ export async function commitLifeImport(args: {
           companionTags: candidate.companionTags,
           active: true,
           isSample: false,
-          choiceCount: Math.max(existing.choiceCount, candidate.frequency),
+          choiceCount: existing.choiceCount + candidate.frequency,
+          merchantName: candidate.merchantName ?? null,
+          historicalCount: (existing.historicalCount ?? existing.choiceCount) + candidate.frequency,
+          price: candidate.paidAmount ?? candidate.unitPrice ?? existing.price ?? null,
+          category: candidate.category ?? existing.category ?? null,
+          source: optionSource,
+          importedAt: now,
           updatedAt: now,
         });
         updatedCount += 1;
@@ -124,6 +132,12 @@ export async function commitLifeImport(args: {
         craving: false,
         choiceCount: candidate.frequency,
         preferenceDelta: 0,
+        merchantName: candidate.merchantName ?? null,
+        historicalCount: candidate.frequency,
+        price: candidate.paidAmount ?? candidate.unitPrice ?? null,
+        category: candidate.category ?? null,
+        source: optionSource,
+        importedAt: now,
         createdAt: now,
         updatedAt: now,
       };
