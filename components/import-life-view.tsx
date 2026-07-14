@@ -20,6 +20,7 @@ import {
   X,
 } from "@phosphor-icons/react";
 import { OptionDialog } from "@/components/defaults-manager";
+import { FoodSprite } from "@/components/game-visuals";
 import { analyzeLifeImages } from "@/lib/import-life";
 import { commitLifeImport } from "@/lib/storage";
 import type {
@@ -532,9 +533,7 @@ function ResultsView({
                         {selected && <Check size={17} weight="bold" />}
                       </button>
                     )}
-                    <div className="grid h-10 w-10 shrink-0 place-items-center rounded-[12px] bg-[var(--accent-soft)] text-[var(--accent-strong)]">
-                      <ForkKnife size={19} />
-                    </div>
+                    <FoodSprite name={candidate.name} size="sm" />
                     <div className="min-w-0 flex-1">
                       {editMode ? (
                         <label>

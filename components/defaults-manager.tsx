@@ -12,6 +12,7 @@ import {
   Trash,
   X,
 } from "@phosphor-icons/react";
+import { FoodSprite } from "@/components/game-visuals";
 import { energyLabels, kindLabels, priceLabels, weatherLabels } from "@/lib/labels";
 import {
   addFoodOption,
@@ -113,7 +114,8 @@ function OptionCard({ option, onEdit }: { option: FoodOption; onEdit: () => void
   return (
     <article className={`app-surface p-5 ${option.active ? "" : "opacity-60"}`}>
       <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
+        <FoodSprite name={option.name} size="md" />
+        <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="option-chip">{kindLabels[option.kind]}</span>
             {option.isSample && <span className="option-chip" data-accent="true">示例</span>}

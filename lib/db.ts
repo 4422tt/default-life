@@ -33,7 +33,7 @@ export async function initializeDatabase() {
     }
 
     if (!(await db.settings.get("app"))) {
-      await db.settings.add({ id: "app", theme: "system", weightVersion: 1 });
+      await db.settings.add({ id: "app", theme: "light", weightVersion: 1 });
     }
   });
 }

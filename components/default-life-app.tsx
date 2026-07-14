@@ -14,10 +14,8 @@ import {
   Database,
   Desktop,
   DownloadSimple,
-  ForkKnife,
   GearSix,
   House,
-  Info,
   Lightning,
   Moon,
   Plus,
@@ -34,6 +32,7 @@ import {
   X,
 } from "@phosphor-icons/react";
 import { DefaultsManager } from "@/components/defaults-manager";
+import { FoodSprite, PixelDie } from "@/components/game-visuals";
 import { HistoryView } from "@/components/history-view";
 import { ImportLifeView } from "@/components/import-life-view";
 import { db, initializeDatabase } from "@/lib/db";
@@ -41,7 +40,6 @@ import {
   companionLabels,
   contextLabels,
   energyLabels,
-  formatShortDate,
   intentLabels,
   kindLabels,
   priceLabels,
@@ -184,7 +182,7 @@ export function DefaultLifeApp() {
   return (
     <div className="min-h-[100dvh] bg-[var(--canvas)] text-[var(--ink)]">
       <AppNavigation view={view} onNavigate={navigate} />
-      <main className="min-h-[100dvh] md:pl-64">
+      <main className="min-h-[100dvh] md:pl-60">
         {loading ? (
           <LoadingView />
         ) : (
@@ -244,16 +242,16 @@ export function DefaultLifeApp() {
 function AppNavigation({ view, onNavigate }: { view: MainView; onNavigate: (view: MainView) => void }) {
   return (
     <>
-      <aside className="fixed inset-y-0 left-0 z-20 hidden w-64 flex-col border-r border-[var(--line)] bg-[var(--surface)] px-5 py-7 md:flex">
+      <aside className="fixed inset-y-0 left-0 z-20 hidden w-60 flex-col border-r border-[var(--line)] bg-[var(--surface)] px-4 py-6 md:flex">
         <Brand />
-        <nav className="mt-12 space-y-2" aria-label="主要导航">
+        <nav className="mt-10 space-y-1.5" aria-label="主要导航">
           {navItems.map((item) => {
             const Icon = item.icon;
             const active = view === item.id;
             return (
               <button
                 key={item.id}
-                className="flex min-h-12 w-full items-center gap-3 rounded-[12px] px-3 text-left text-sm font-semibold text-[var(--muted)] transition-colors hover:bg-[var(--surface-soft)] hover:text-[var(--ink)] aria-[current=page]:bg-[var(--accent-soft)] aria-[current=page]:text-[var(--accent-strong)]"
+                className="flex min-h-11 w-full items-center gap-3 rounded-[10px] border border-transparent px-3 text-left text-sm font-semibold text-[var(--muted)] transition-colors hover:bg-[var(--surface-soft)] hover:text-[var(--ink)] aria-[current=page]:border-[var(--line)] aria-[current=page]:bg-[var(--accent-soft)] aria-[current=page]:text-[var(--accent-strong)]"
                 aria-current={active ? "page" : undefined}
                 onClick={() => onNavigate(item.id)}
               >
@@ -263,9 +261,9 @@ function AppNavigation({ view, onNavigate }: { view: MainView; onNavigate: (view
             );
           })}
         </nav>
-        <div className="app-soft mt-auto p-4">
+        <div className="sidebar-note mt-auto p-4">
           <p className="text-xs font-semibold text-[var(--ink)]">你的选择，你的规则</p>
-          <p className="mt-2 text-xs leading-5 text-[var(--muted)]">数据默认只留在这台设备的浏览器里。</p>
+          <p className="mt-2 text-xs leading-5 text-[var(--muted)]">系统只在你留下的偏好范围内做决定。</p>
         </div>
       </aside>
 
@@ -297,12 +295,10 @@ function AppNavigation({ view, onNavigate }: { view: MainView; onNavigate: (view
 function Brand({ compact = false }: { compact?: boolean }) {
   return (
     <div className="flex items-center gap-3">
-      <div className={`${compact ? "h-9 w-9 rounded-[11px]" : "h-11 w-11 rounded-[13px]"} grid place-items-center bg-[var(--accent)] text-[var(--accent-ink)]`}>
-        <ForkKnife size={compact ? 18 : 22} weight="bold" />
-      </div>
+      <PixelDie compact animated={false} />
       <div>
-        <p className={`${compact ? "text-sm" : "text-base"} font-bold tracking-[-0.02em]`}>预制人生</p>
-        <p className="text-[10px] font-semibold tracking-[0.13em] text-[var(--muted)]">DEFAULT LIFE</p>
+        <p className={`${compact ? "text-sm" : "text-[15px]"} font-bold tracking-[-0.03em]`}>预制人生</p>
+        <p className="text-[9px] font-semibold tracking-[0.16em] text-[var(--muted)]">DEFAULT LIFE</p>
       </div>
     </div>
   );
@@ -322,64 +318,106 @@ function HomeView({
   const activeOptions = options.filter((option) => option.active);
   const lastDecision = [...decisions].sort((a, b) => b.completedAt.localeCompare(a.completedAt))[0];
   const canBegin = activeOptions.length > 0;
+  const previewOption = activeOptions.find((option) => option.id === lastDecision?.selectedId) ?? activeOptions[0];
+  const previewFoods = activeOptions.slice(0, 3);
 
   return (
-    <section className="screen-enter mx-auto grid w-full max-w-7xl grid-cols-1 gap-8 px-4 pb-28 pt-8 md:min-h-[100dvh] md:grid-cols-[1.08fr_0.92fr] md:items-center md:px-10 md:py-12 lg:gap-14 lg:px-14">
-      <div className="max-w-2xl">
-        <p className="text-sm font-semibold text-[var(--accent-strong)]">个人生活操作系统</p>
-        <h1 className="mt-4 text-5xl font-semibold leading-[1.02] tracking-[-0.055em] md:text-6xl lg:text-7xl">
-          今天不想再想什么？
-        </h1>
-        <p className="mt-6 max-w-lg text-base leading-7 text-[var(--muted)] md:text-lg">
-          先写下你认可的默认值，再让系统替你减少重复选择。
-        </p>
-
-        <dl className="mt-10 grid max-w-lg grid-cols-2 gap-3">
-          <div className="app-soft p-4">
-            <dt className="text-xs text-[var(--muted)]">可推荐选项</dt>
-            <dd className="mt-2 text-3xl font-semibold tabular-nums">{activeOptions.length}</dd>
+    <div className="home-page screen-enter">
+      <section className="home-hero" aria-labelledby="home-title">
+        <div className="home-hero-copy">
+          <p className="home-kicker">PERSONAL LIFE OS</p>
+          <h1 id="home-title">今天不用再想<br />吃什么。</h1>
+          <p className="home-intro">先留下真正会反复选择的东西，再把今天交给系统。</p>
+          <div className="home-actions">
+            <button className="app-button app-button-primary" onClick={canBegin ? onBegin : onOpenDefaults}>
+              {canBegin ? "开始今天" : "建立默认池"}
+              {canBegin ? <ArrowRight size={18} weight="bold" /> : <Plus size={18} weight="bold" />}
+            </button>
+            <button className="app-button app-button-secondary" onClick={onOpenDefaults}>
+              查看默认池
+            </button>
           </div>
-          <div className="app-soft p-4">
-            <dt className="text-xs text-[var(--muted)]">完成选择</dt>
-            <dd className="mt-2 text-3xl font-semibold tabular-nums">{decisions.length}</dd>
-          </div>
-        </dl>
-      </div>
-
-      <div className="app-surface-raised overflow-hidden p-5 md:p-7 lg:p-8">
-        <div className="flex items-start justify-between gap-4">
-          <div className="grid h-14 w-14 place-items-center rounded-[16px] bg-[var(--accent-soft)] text-[var(--accent-strong)]">
-            <ForkKnife size={28} weight="bold" />
-          </div>
-          <span className="option-chip" data-accent="true">当前场景</span>
         </div>
-        <h2 className="mt-8 text-3xl font-semibold tracking-[-0.04em]">今天吃什么</h2>
-        <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-          用预算、精力和天气描述现在。整个过程通常只需要几次点击。
-        </p>
-        <button className="app-button app-button-primary mt-8 w-full" onClick={canBegin ? onBegin : onOpenDefaults}>
-          {canBegin ? "开始选择" : "建立默认池"}
-          {canBegin ? <ArrowRight size={18} weight="bold" /> : <Plus size={18} weight="bold" />}
-        </button>
 
-        <div className="mt-7 border-t border-[var(--line)] pt-5">
-          {lastDecision ? (
-            <div className="flex items-center justify-between gap-4">
-              <div className="min-w-0">
-                <p className="text-xs text-[var(--muted)]">上次选择</p>
-                <p className="mt-1 truncate text-sm font-semibold">{lastDecision.selectedName}</p>
+        <aside className="life-console" aria-label="今日选择系统">
+          <div className="life-console-top">
+            <span>今日选择</span>
+            <span>{activeOptions.length} 个默认值</span>
+          </div>
+          <div className="dice-stage">
+            <PixelDie />
+            <p>把重复选择，交给系统。</p>
+          </div>
+          <div className="food-dock" aria-label="当前可选的食物">
+            {previewFoods.map((option) => (
+              <span className="food-dock-item" key={option.id} title={option.name}>
+                <FoodSprite name={option.name} size="sm" />
+              </span>
+            ))}
+          </div>
+        </aside>
+      </section>
+
+      <section className="home-method" aria-labelledby="method-title">
+        <header>
+          <h2 id="method-title">系统只做三件事</h2>
+          <p>不扩大选择，只把你已经认可的生活规则整理清楚。</p>
+        </header>
+        <ol className="life-steps">
+          <li>
+            <Cards size={22} />
+            <div><h3>留下真正会选的</h3><p>用默认池定义范围。</p></div>
+          </li>
+          <li>
+            <Compass size={22} />
+            <div><h3>描述今天的状态</h3><p>预算、天气、精力就够了。</p></div>
+          </li>
+          <li>
+            <CheckCircle size={22} />
+            <div><h3>接收一个可执行的答案</h3><p>你仍然保留最终决定权。</p></div>
+          </li>
+        </ol>
+      </section>
+
+      <section className="home-preview" aria-labelledby="preview-title">
+        <div className="home-preview-copy">
+          <h2 id="preview-title">把真实状态，放进生活界面。</h2>
+          <p>这不是随机转盘。系统会结合你的偏好和当下情境，给出可以直接执行的建议。</p>
+          <dl className="home-metrics">
+            <div><dt>可推荐选项</dt><dd>{activeOptions.length}</dd></div>
+            <div><dt>完成选择</dt><dd>{decisions.length}</dd></div>
+          </dl>
+        </div>
+
+        <div className="system-preview" aria-label="今天吃什么系统预览">
+          <div className="system-preview-header">
+            <span>今天吃什么</span>
+            <span>依据当前默认值</span>
+          </div>
+          <div className="system-preview-body">
+            <div className="system-context">
+              <p>今天的状态</p>
+              <div><span>预算</span><strong>中</strong></div>
+              <div><span>精力</span><strong>普通</strong></div>
+              <div><span>天气</span><strong>日常</strong></div>
+            </div>
+            <article className="system-answer">
+              <FoodSprite name={previewOption?.name ?? "番茄牛腩饭"} size="lg" />
+              <div>
+                <p>今天的默认答案</p>
+                <h3>{previewOption?.name ?? "先建立一个默认值"}</h3>
+                <span>{previewOption ? `约 ${previewOption.etaMinutes} 分钟` : "从真正喜欢的选项开始"}</span>
               </div>
-              <p className="shrink-0 text-xs text-[var(--muted)]">{formatShortDate(lastDecision.completedAt)}</p>
-            </div>
-          ) : (
-            <div className="flex items-start gap-3">
-              <Info size={18} className="mt-0.5 shrink-0 text-[var(--accent-strong)]" />
-              <p className="text-xs leading-5 text-[var(--muted)]">示例选项已经准备好，你可以先走一遍完整流程。</p>
-            </div>
-          )}
+            </article>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+
+      <section className="home-note" aria-label="产品理念">
+        <p>生活不必每次从零开始。</p>
+        <span>不是替你生活，只是替你减少重复消耗。</span>
+      </section>
+    </div>
   );
 }
 
@@ -527,9 +565,7 @@ function RecommendationView({
       <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-[1.35fr_0.65fr]">
         <article className="app-surface-raised flex min-h-[470px] flex-col p-6 md:p-8 lg:p-10">
           <div className="flex items-start justify-between gap-4">
-            <div className="grid h-14 w-14 place-items-center rounded-[16px] bg-[var(--accent)] text-[var(--accent-ink)]">
-              <Sparkle size={27} weight="fill" />
-            </div>
+            <FoodSprite name={primary.option.name} size="lg" />
             <span className="option-chip" data-accent="true">今天的默认答案</span>
           </div>
           <div className="my-auto py-10">
@@ -566,12 +602,15 @@ function RecommendationView({
               {result.alternatives.length > 0 ? result.alternatives.map((alternative) => (
                 <button
                   key={alternative.option.id}
-                  className="w-full rounded-[12px] border border-[var(--line)] bg-[var(--surface-raised)] p-4 text-left transition-transform active:scale-[0.99]"
+                  className="flex w-full items-center gap-3 rounded-[12px] border border-[var(--line)] bg-[var(--surface-raised)] p-3 text-left transition-transform active:scale-[0.99]"
                   onClick={() => onAccept(alternative, "alternative")}
                 >
-                  <span className="text-xs text-[var(--muted)]">{kindLabels[alternative.option.kind]}</span>
-                  <span className="mt-1 block font-semibold">{alternative.option.name}</span>
-                  <span className="mt-2 block text-xs leading-5 text-[var(--muted)]">{alternative.reasons[0] ?? "也符合你今天的主要条件"}</span>
+                  <FoodSprite name={alternative.option.name} size="sm" />
+                  <span className="min-w-0">
+                    <span className="text-xs text-[var(--muted)]">{kindLabels[alternative.option.kind]}</span>
+                    <span className="mt-1 block truncate font-semibold">{alternative.option.name}</span>
+                    <span className="mt-1 block text-xs leading-5 text-[var(--muted)]">{alternative.reasons[0] ?? "也符合你今天的主要条件"}</span>
+                  </span>
                 </button>
               )) : (
                 <p className="text-sm leading-6 text-[var(--muted)]">选择池里暂时没有更多备选。</p>

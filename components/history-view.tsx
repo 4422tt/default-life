@@ -12,6 +12,7 @@ import {
   Sparkle,
   TrendUp,
 } from "@phosphor-icons/react";
+import { FoodSprite } from "@/components/game-visuals";
 import { contextLabels, feedbackLabels, formatShortDate } from "@/lib/labels";
 import type { DecisionRecord, LifeImportRecord } from "@/lib/types";
 
@@ -61,9 +62,7 @@ export function HistoryView({ decisions, imports }: HistoryViewProps) {
             {sorted.map((decision, index) => (
               <article key={decision.id} className={`app-surface p-5 md:p-6 ${index === 0 ? "app-surface-raised" : ""}`}>
                 <div className="flex items-start gap-4">
-                  <div className="grid h-11 w-11 shrink-0 place-items-center rounded-[13px] bg-[var(--accent-soft)] text-[var(--accent-strong)]">
-                    <ForkKnife size={21} />
-                  </div>
+                  <FoodSprite name={decision.selectedName} size="sm" />
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div>
