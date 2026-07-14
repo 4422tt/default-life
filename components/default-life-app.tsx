@@ -194,11 +194,12 @@ export function DefaultLifeApp() {
   const latestImport = lifeImports
     ? [...lifeImports].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]
     : undefined;
+  const isLandingHome = view === "today" && flow === "home";
 
   return (
     <div className="min-h-[100dvh] bg-[var(--canvas)] text-[var(--ink)]">
-      <AppNavigation view={view} onNavigate={navigate} />
-      <main className="min-h-[100dvh] md:pl-60">
+      {!isLandingHome && <AppNavigation view={view} onNavigate={navigate} />}
+      <main className={isLandingHome ? "min-h-[100dvh]" : "min-h-[100dvh] md:pl-60"}>
         {loading ? (
           <LoadingView />
         ) : (
@@ -320,7 +321,7 @@ function Brand({ compact = false }: { compact?: boolean }) {
   );
 }
 
-function HomeView({
+function LegacyHomeView({
   options,
   decisions,
   onBegin,
@@ -464,6 +465,160 @@ function HomeView({
         <p>生活不必每次从零开始。</p>
         <span>不是替你生活，只是替你减少重复消耗。</span>
       </section>
+    </div>
+  );
+}
+
+function HomeView({
+  options,
+  decisions,
+  onBegin,
+  onOpenDefaults,
+}: {
+  options: FoodOption[];
+  decisions: DecisionRecord[];
+  onBegin: () => void;
+  onOpenDefaults: () => void;
+}) {
+  const [worldlineDay, setWorldlineDay] = useState("default-life");
+  const [worldlineOffset, setWorldlineOffset] = useState(0);
+  const [character, setCharacter] = useState<"girl" | "boy">("girl");
+  const activeOptions = options.filter((option) => option.active);
+  const lastDecision = [...decisions].sort((a, b) => b.completedAt.localeCompare(a.completedAt))[0];
+  const canBegin = activeOptions.length > 0;
+  const previewOption = activeOptions.find((option) => option.id === lastDecision?.selectedId) ?? activeOptions[0];
+  const dailySeed = useMemo(() => worldlineHash(worldlineDay), [worldlineDay]);
+  const worldlineNumber = String((dailySeed + worldlineOffset * 48271) % 1_000_000).padStart(6, "0");
+  const worldlineOption = activeOptions.length > 0
+    ? activeOptions[(dailySeed + worldlineOffset) % activeOptions.length]
+    : undefined;
+  const selectedOption = worldlineOption ?? previewOption;
+  const assetBasePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+  const startToday = canBegin ? onBegin : onOpenDefaults;
+
+  useEffect(() => {
+    setWorldlineDay(localDateKey());
+    setWorldlineOffset(0);
+  }, []);
+
+  return (
+    <div className="p1-home screen-enter">
+      <header className="p1-nav">
+        <a className="p1-brand" href="#top" aria-label="Default Life 首页">
+          <PixelDie compact animated={false} />
+          <span>Default Life</span>
+        </a>
+        <nav className="p1-nav-links" aria-label="首页导航">
+          <a href="#how-it-works">功能介绍</a>
+          <a href="#scenarios">使用场景</a>
+          <a href="#about">关于我</a>
+          <button type="button" onClick={startToday}>开始使用</button>
+        </nav>
+      </header>
+
+      <section className="p1-hero" id="top" aria-labelledby="home-title">
+        <div className="p1-hero-copy">
+          <p className="p1-kicker">PERSONAL LIFE OPERATING SYSTEM</p>
+          <h1 id="home-title"><span>预制人生</span><em>Default Life</em></h1>
+          <p className="p1-question">今天不想再想什么？</p>
+          <div className="p1-copy-blocks">
+            <p>先写下你的默认值，<br />让系统替你减少重复选择。</p>
+            <p>不是替你决定人生。<br />只是帮你跳过那些<br />不值得消耗注意力的小选择。</p>
+          </div>
+          <div className="p1-actions">
+            <button className="p1-button p1-button-primary" type="button" onClick={onOpenDefaults}>
+              开始创建我的默认人生 <ArrowRight size={17} weight="bold" />
+            </button>
+            <button
+              className="p1-button p1-button-secondary"
+              type="button"
+              onClick={() => setWorldlineOffset((current) => current + 1)}
+              disabled={!canBegin}
+            >
+              掷一次骰子
+            </button>
+          </div>
+        </div>
+
+        <div className="p1-dice-column" aria-label="命运生成器">
+          <button
+            className="p1-die-trigger"
+            type="button"
+            onClick={() => setWorldlineOffset((current) => current + 1)}
+            disabled={!canBegin}
+            aria-label="掷骰子，切换今天的世界线"
+            title={`今天的世界线 #${worldlineNumber}`}
+          >
+            <PixelDie key={worldlineOffset} shifting={worldlineOffset > 0} />
+          </button>
+          <span className="p1-die-shadow" aria-hidden="true" />
+          <p className="p1-dice-status" aria-live="polite">
+            {worldlineOffset === 0 ? "命运正在生成..." : `世界线 #${worldlineNumber}`}
+          </p>
+        </div>
+
+        <aside className="p1-choice-card" aria-label="今日选择">
+          <header><span>今日选择</span><span aria-hidden="true">•••</span></header>
+          <div className="p1-choice-food">
+            <FoodSprite name={selectedOption?.name ?? "麻辣烫"} size="lg" />
+          </div>
+          <h2>{selectedOption?.name ?? "建立默认池"}</h2>
+          <p>已从「美食默认池」中选择</p>
+          <footer><CheckCircle size={16} weight="fill" /> 已决定</footer>
+        </aside>
+      </section>
+
+      <section className="p1-dashboard" id="scenarios" aria-label="生活系统概览">
+        <article className="p1-mini-card">
+          <h2><Cards size={19} /> 我的默认池</h2>
+          <p>记录你经常选择的东西。</p>
+          <div className="p1-tags">
+            {["早餐", "午餐", "晚餐", "饮品", "购物", "娱乐", "出行", "…"].map((tag) => <span key={tag}>{tag}</span>)}
+          </div>
+        </article>
+        <article className="p1-mini-card">
+          <h2><Smiley size={20} /> 今日状态</h2>
+          <p>今天的：</p>
+          <dl className="p1-state-list">
+            <div><dt><Lightning size={16} weight="fill" /> 精力</dt><dd>中等</dd></div>
+            <div><dt><Wallet size={16} weight="fill" /> 预算</dt><dd>¥30</dd></div>
+            <div><dt><Sun size={16} weight="fill" /> 天气</dt><dd>晴天</dd></div>
+          </dl>
+        </article>
+        <article className="p1-mini-card">
+          <h2><ClockCounterClockwise size={19} /> 最近选择</h2>
+          <p>过去的决定记录。</p>
+          <div className="p1-recent-choice">
+            <span>{lastDecision ? new Date(lastDecision.completedAt).toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" }) : "今天"}</span>
+            <strong>{lastDecision ? `午餐 → ${previewOption?.name ?? "默认选择"}` : `午餐 → ${selectedOption?.name ?? "等待选择"}`}</strong>
+          </div>
+          <div className="p1-recent-secondary">昨天　晚餐 → 番茄牛腩饭</div>
+        </article>
+        <article className="p1-mini-card">
+          <h2><Compass size={19} /> 生活轨迹</h2>
+          <p>不是预测未来。<br />只是记录你的选择。</p>
+          <div className="p1-trail" aria-label="近期选择变化趋势"><i /><i /><i /><i /><i /><i /></div>
+        </article>
+        <aside className="p1-character-area" aria-label="生活角色切换">
+          <div className="p1-character-switch" role="group" aria-label="选择角色">
+            <button type="button" className={character === "boy" ? "is-active" : ""} onClick={() => setCharacter("boy")}>男孩</button>
+            <button type="button" className={character === "girl" ? "is-active" : ""} onClick={() => setCharacter("girl")}>女孩</button>
+          </div>
+          <img
+            className="p1-character-sprite"
+            src={`${assetBasePath}/assets/life-character-${character}-ip.png`}
+            alt={character === "girl" ? "黄发黑色穿搭的成年女性像素角色" : "棕发蓝色上衣的成年男性像素角色"}
+          />
+        </aside>
+      </section>
+
+      <section className="p1-afterword" id="how-it-works">
+        <div><strong>设定默认池</strong><span>留下真正会反复选择的东西。</span></div>
+        <div><strong>描述今天状态</strong><span>预算、天气和精力就够了。</span></div>
+        <div><strong>让系统给出答案</strong><span>你始终保留最后的决定权。</span></div>
+      </section>
+
+      <footer className="p1-about" id="about">生活不必每次从零开始。把重复交给系统，把精力留给重要的事情。</footer>
     </div>
   );
 }
