@@ -59,7 +59,7 @@ export function PixelDie({
 
   return (
     <span
-      className="pixel-die pixel-die-cube"
+      className="pixel-die pixel-die-reference"
       data-compact="false"
       data-animated={animated}
       data-rolling={rolling || shifting}
@@ -68,36 +68,24 @@ export function PixelDie({
       role="img"
       aria-label={`黑色像素骰子，当前点数 ${value}`}
     >
-      <span className="pixel-die-ground-shadow" aria-hidden="true" />
-      <span className="pixel-die-cube-anchor" aria-hidden="true">
-        <span className="pixel-die-cube-inner">
-          {diceFaces(value).map((face) => (
-            <DiceFace key={face.side} side={face.side} value={face.value} />
-          ))}
-        </span>
+      <span className="pixel-die-reference-stage" aria-hidden="true">
+        <img
+          className="pixel-die-reference-image pixel-die-reference-idle"
+          src={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/assets/hero-die-reference.png`}
+          alt=""
+        />
+        <img
+          className="pixel-die-reference-image pixel-die-reference-rolling"
+          src={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/assets/hero-die-rolling.png`}
+          alt=""
+        />
+        {resultVisible && <ResultDieFace value={value} />}
       </span>
     </span>
   );
 }
 
-type DiceSide = "front" | "back" | "right" | "left" | "top" | "bottom";
-
-function diceFaces(value: number): Array<{ side: DiceSide; value: number }> {
-  const safeValue = Math.min(6, Math.max(1, Math.round(value)));
-  const oppositePairs = [[1, 6], [2, 5], [3, 4]] as const;
-  const remainingPairs = oppositePairs.filter((pair) => !(pair as readonly number[]).includes(safeValue));
-
-  return [
-    { side: "front", value: safeValue },
-    { side: "back", value: 7 - safeValue },
-    { side: "right", value: remainingPairs[0][0] },
-    { side: "left", value: remainingPairs[0][1] },
-    { side: "top", value: remainingPairs[1][0] },
-    { side: "bottom", value: remainingPairs[1][1] },
-  ];
-}
-
-function DiceFace({ side, value }: { side: DiceSide; value: number }) {
+function ResultDieFace({ value }: { value: number }) {
   const positions = {
     1: ["center"],
     2: ["top-left", "bottom-right"],
@@ -106,11 +94,12 @@ function DiceFace({ side, value }: { side: DiceSide; value: number }) {
     5: ["top-left", "top-right", "center", "bottom-left", "bottom-right"],
     6: ["top-left", "top-right", "middle-left", "middle-right", "bottom-left", "bottom-right"],
   } as const;
+  const safeValue = Math.min(6, Math.max(1, Math.round(value))) as keyof typeof positions;
 
   return (
-    <span className={`pixel-die-face pixel-die-face-${side}`} data-face-value={value}>
-      {positions[value as keyof typeof positions].map((position) => (
-        <span className={`pixel-cube-pip pixel-cube-pip-${position}`} key={position} />
+    <span className="pixel-die-result-face" data-face-value={safeValue}>
+      {positions[safeValue].map((position) => (
+        <span className={`pixel-result-pip pixel-result-pip-${position}`} key={position} />
       ))}
     </span>
   );

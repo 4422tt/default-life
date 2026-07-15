@@ -45,12 +45,12 @@ describe("real order import workflow", () => {
     });
   });
 
-  it("returns only items supplied by the configured recognition service", async () => {
-    process.env.NEXT_PUBLIC_ORDER_RECOGNITION_ENDPOINT = "https://recognition.example.test/api/import-orders";
+  it("maps the configured vision response into a real imported order", async () => {
+    process.env.NEXT_PUBLIC_ORDER_RECOGNITION_ENDPOINT = "https://recognition.example.test/api/recognize-order";
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
-      items: [
-        { id: "real-1", merchantName: "袁记云饺 半山店", dishName: "鲜虾蟹籽云吞面", quantity: 1, paidAmount: 26.98, confidence: 0.94, sourceImageId: "image-1" },
-      ],
+      foodName: "鲜虾蟹籽云吞面",
+      category: "云吞面",
+      confidence: 0.94,
     }), { status: 200, headers: { "content-type": "application/json" } })));
 
     const file = new File(["order"], "order.png", { type: "image/png" });
@@ -58,6 +58,8 @@ describe("real order import workflow", () => {
 
     expect(result.items).toHaveLength(1);
     expect(result.items[0].dishName).toBe("鲜虾蟹籽云吞面");
+    expect(result.items[0].category).toBe("云吞面");
+    expect(result.items[0].sourceFileName).toBe("order.png");
     expect(JSON.stringify(result)).not.toContain("番茄牛腩饭");
   });
 

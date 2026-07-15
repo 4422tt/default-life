@@ -1564,40 +1564,42 @@ button:disabled {
   height: 18.5rem;
 }
 
-.p1-die-trigger .pixel-die-cube {
-  display: block;
+.p1-die-trigger .pixel-die-reference {
+  display: grid;
+  place-items: center;
   overflow: visible;
-  perspective: 46rem;
   isolation: isolate;
 }
 
-.pixel-die-cube-anchor {
-  position: absolute;
-  top: 46%;
-  left: 50%;
+.pixel-die-reference-stage {
+  position: relative;
   display: block;
-  width: 10.4rem;
-  height: 10.4rem;
-  transform: translate(-50%, -50%);
-  transform-style: preserve-3d;
+  width: 100%;
+  height: 100%;
 }
 
-.pixel-die-cube-inner {
+.pixel-die-reference-image {
   position: absolute;
   inset: 0;
   display: block;
-  transform: rotateX(22deg) rotateY(45deg);
-  transform-style: preserve-3d;
-  transition: transform 520ms cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: transform;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+  mix-blend-mode: multiply;
+  transform-origin: 50% 55%;
 }
 
-.pixel-die-cube[data-result-visible="true"] .pixel-die-cube-inner {
-  transform: translate3d(0, 0.35rem, 0) rotateX(10deg) rotateY(-14deg);
+.pixel-die-reference-rolling {
+  opacity: 0;
 }
 
-.pixel-die-cube[data-rolling="true"] .pixel-die-cube-inner {
-  animation: p1-cube-roll 1.12s cubic-bezier(0.2, 0.72, 0.18, 1) both;
+.pixel-die-reference[data-rolling="true"] .pixel-die-reference-idle {
+  animation: p1-reference-die-roll 1.12s cubic-bezier(0.2, 0.72, 0.18, 1) both;
+}
+
+.pixel-die-reference[data-rolling="true"] .pixel-die-reference-rolling {
+  animation: p1-reference-die-roll-art 1.12s steps(8, end) both;
 }
 
 button.p1-die-trigger:disabled {
@@ -1605,73 +1607,54 @@ button.p1-die-trigger:disabled {
   opacity: 1 !important;
 }
 
-.pixel-die-face {
+.pixel-die-result-face {
   position: absolute;
-  inset: 0;
+  right: 0.8rem;
+  bottom: 1.15rem;
   display: block;
-  overflow: hidden;
-  border: 4px solid #0b0c0e;
-  background: #17181a;
-  box-shadow: inset 0.34rem 0.34rem 0 rgb(255 255 255 / 0.055), inset -0.42rem -0.42rem 0 rgb(0 0 0 / 0.28);
-  backface-visibility: hidden;
-  image-rendering: pixelated;
+  width: 4.3rem;
+  height: 4.3rem;
+  border: 0.32rem solid #101114;
+  background: #1b1c1f;
+  box-shadow: 0.28rem 0.28rem 0 #686b70;
+  animation: p1-result-face-in 280ms ease-out both;
 }
 
-.pixel-die-face-front { transform: translateZ(5.2rem); }
-.pixel-die-face-back { transform: rotateY(180deg) translateZ(5.2rem); }
-.pixel-die-face-right { background: #111214; transform: rotateY(90deg) translateZ(5.2rem); }
-.pixel-die-face-left { background: #101113; transform: rotateY(-90deg) translateZ(5.2rem); }
-.pixel-die-face-top { background: #222428; transform: rotateX(90deg) translateZ(5.2rem); }
-.pixel-die-face-bottom { background: #0d0e10; transform: rotateX(-90deg) translateZ(5.2rem); }
-
-.pixel-cube-pip {
+.pixel-result-pip {
   position: absolute;
   display: block;
-  width: 1.12rem;
-  height: 1.12rem;
-  clip-path: polygon(25% 0, 75% 0, 75% 25%, 100% 25%, 100% 75%, 75% 75%, 75% 100%, 25% 100%, 25% 75%, 0 75%, 0 25%, 25% 25%);
-  background: #f7f7f3;
-  box-shadow: 0.18rem 0.18rem 0 rgb(196 199 202 / 0.55);
+  width: 0.68rem;
+  height: 0.68rem;
+  background: #f6f6f1;
+  box-shadow: 0.1rem 0.1rem 0 #c3c5c8;
 }
 
-.pixel-cube-pip-top-left { top: 17%; left: 17%; }
-.pixel-cube-pip-top-right { top: 17%; right: 17%; }
-.pixel-cube-pip-middle-left { top: 50%; left: 17%; transform: translateY(-50%); }
-.pixel-cube-pip-middle-right { top: 50%; right: 17%; transform: translateY(-50%); }
-.pixel-cube-pip-center { top: 50%; left: 50%; transform: translate(-50%, -50%); }
-.pixel-cube-pip-bottom-left { bottom: 17%; left: 17%; }
-.pixel-cube-pip-bottom-right { right: 17%; bottom: 17%; }
+.pixel-result-pip-top-left { top: 14%; left: 14%; }
+.pixel-result-pip-top-right { top: 14%; right: 14%; }
+.pixel-result-pip-middle-left { top: 50%; left: 14%; transform: translateY(-50%); }
+.pixel-result-pip-middle-right { top: 50%; right: 14%; transform: translateY(-50%); }
+.pixel-result-pip-center { top: 50%; left: 50%; transform: translate(-50%, -50%); }
+.pixel-result-pip-bottom-left { bottom: 14%; left: 14%; }
+.pixel-result-pip-bottom-right { right: 14%; bottom: 14%; }
 
-.pixel-die-ground-shadow {
-  position: absolute;
-  right: 3.1rem;
-  bottom: 2.7rem;
-  left: 3.1rem;
-  display: block;
-  height: 1.15rem;
-  border-radius: 50%;
-  background: rgb(29 31 34 / 0.15);
-  filter: blur(5px);
-  transform-origin: center;
+@keyframes p1-reference-die-roll {
+  0% { opacity: 1; transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
+  22% { opacity: 0.92; transform: translate3d(-0.65rem, -1.35rem, 0) rotate(-9deg) scale(0.96); }
+  56% { opacity: 0.82; transform: translate3d(0.75rem, -2.2rem, 0) rotate(13deg) scale(0.92); }
+  78% { opacity: 0.96; transform: translate3d(-0.25rem, -0.3rem, 0) rotate(-5deg) scale(1.03); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
 }
 
-.pixel-die-cube[data-rolling="true"] .pixel-die-ground-shadow {
-  animation: p1-cube-shadow-roll 1.12s ease-out both;
+@keyframes p1-reference-die-roll-art {
+  0%, 15% { opacity: 0; transform: translate3d(0, 0.1rem, 0) rotate(0deg) scale(0.96); }
+  25%, 72% { opacity: 1; transform: translate3d(-0.2rem, -0.7rem, 0) rotate(-4deg) scale(0.98); }
+  84% { opacity: 0.5; transform: translate3d(0.1rem, -0.1rem, 0) rotate(3deg) scale(1.01); }
+  100% { opacity: 0; transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
 }
 
-@keyframes p1-cube-roll {
-  0% { transform: translate3d(0, 0, 0) rotateX(22deg) rotateY(45deg) rotateZ(0); }
-  20% { transform: translate3d(-0.55rem, -1.65rem, 0) rotateX(178deg) rotateY(166deg) rotateZ(16deg); }
-  52% { transform: translate3d(0.7rem, -3.15rem, 0) rotateX(468deg) rotateY(520deg) rotateZ(-17deg); }
-  78% { transform: translate3d(-0.24rem, -0.45rem, 0) rotateX(650deg) rotateY(640deg) rotateZ(6deg); }
-  90% { transform: translate3d(0.08rem, 0.42rem, 0) rotateX(708deg) rotateY(718deg) rotateZ(-2deg); }
-  100% { transform: translate3d(0, 0.35rem, 0) rotateX(730deg) rotateY(706deg) rotateZ(0); }
-}
-
-@keyframes p1-cube-shadow-roll {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  58% { opacity: 0.34; transform: scale(0.58); }
-  92% { opacity: 0.86; transform: scale(1.08); }
+@keyframes p1-result-face-in {
+  from { opacity: 0; transform: translateY(0.5rem) scale(0.82); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .p1-die-shadow {

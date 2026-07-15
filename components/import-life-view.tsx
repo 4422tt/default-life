@@ -69,8 +69,8 @@ export function ImportLifeView({ latestImport, onBack }: ImportLifeViewProps) {
         nextError = "这里只支持 JPG、JPEG、PNG 和 WEBP 图片。";
         return false;
       }
-      if (file.size > 10 * 1024 * 1024) {
-        nextError = `${file.name} 超过 10MB，请压缩后重试。`;
+      if (file.size > 3 * 1024 * 1024) {
+        nextError = `${file.name} 超过 3MB，请压缩后重试。`;
         return false;
       }
       return true;
@@ -260,7 +260,7 @@ function UploadView({ previews, error, inputRef, onBack, onFiles, onRemove, onAn
   return (
     <>
       <button className="app-button app-button-quiet -ml-3 min-h-10 px-3 text-sm" onClick={onBack}><ArrowLeft size={17} /> 返回</button>
-      <div className="mt-7 max-w-2xl"><h1 className="text-3xl font-semibold tracking-[-0.04em] md:text-5xl">上传外卖截图</h1><p className="mt-4 text-sm leading-6 text-[var(--muted)] md:text-base">支持 JPG、PNG、WEBP，多图上传，单张不超过 10MB。请上传清晰的完整订单页面。</p></div>
+      <div className="mt-7 max-w-2xl"><h1 className="text-3xl font-semibold tracking-[-0.04em] md:text-5xl">上传外卖截图</h1><p className="mt-4 text-sm leading-6 text-[var(--muted)] md:text-base">支持 JPG、PNG、WEBP，多图上传，单张不超过 3MB。请上传清晰的完整订单页面。</p></div>
       <div className="mt-8 grid grid-cols-1 gap-5 lg:grid-cols-[1fr_0.72fr]">
         <label className="upload-dropzone grid min-h-80 place-items-center p-7 text-center" htmlFor="life-screenshots" onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); onFiles(Array.from(event.dataTransfer.files)); }}>
           <div><div className="mx-auto grid h-16 w-16 place-items-center rounded-[16px] bg-[var(--accent-soft)] text-[var(--accent-strong)]"><UploadSimple size={30} weight="bold" /></div><h2 className="mt-6 text-xl font-semibold">拖拽图片到这里</h2><p className="mt-2 text-sm leading-6 text-[var(--muted)]">或点击选择图片，最多 12 张</p><span className="app-button app-button-secondary mt-5">选择图片</span></div>

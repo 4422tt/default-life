@@ -1,0 +1,7 @@
+{
+  "name": "default-life-recognition-api",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  }
+}

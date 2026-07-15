@@ -1,52 +1,65 @@
-# 订单截图识别接口
+# 订单截图识别：GitHub Pages + Vercel
 
-Default Life 的 GitHub Pages 版本是纯静态站点，不能安全保存模型 API Key，也不能直接运行 Next.js API Route。因此前端只连接你控制的服务端识别接口，不会把密钥发送到浏览器。
+GitHub Pages 只能托管静态前端，不能安全保存 `OPENAI_API_KEY`。本项目因此把识别放在独立的 Vercel Function：浏览器把截图发送到 Vercel，Vercel 再用仅存在于服务器环境变量中的密钥调用 OpenAI Vision。
 
-## 前端配置
-
-构建前设置：
-
-```bash
-NEXT_PUBLIC_ORDER_RECOGNITION_ENDPOINT=https://your-backend.example.com/api/import-orders
+```
+GitHub Pages 前端 → Vercel /api/recognize-order → OpenAI Responses API
+       公开端点                    OPENAI_API_KEY（仅服务器）
 ```
 
-未设置时，上传流程会明确显示“当前未配置图片识别服务”，不会返回演示菜品。
+## 已实现的接口
 
-## 接口约定
-
-- Method: `POST`
-- Content-Type: `multipart/form-data`
-- 字段：一个或多个 `images`
-- 成功响应：HTTP 200
-- 没有识别到订单：HTTP 422
-
-成功响应只需要返回真实识别项目：
+- Function 文件：`vercel-api/api/recognize-order.ts`
+- 请求：`POST /api/recognize-order`
+- 请求体：一张 JSON/base64 图片；多图导入会逐张发送，避免触发 Vercel 4.5MB 单请求限制。
+- 支持：JPG、PNG、WEBP，单张最多 3MB。
+- 成功响应：
 
 ```json
 {
-  "items": [
-    {
-      "id": "provider-item-id",
-      "merchantName": "识别到的商家名称或 null",
-      "dishName": "识别到的完整菜品名称",
-      "quantity": 1,
-      "unitPrice": 24,
-      "paidAmount": 26,
-      "category": "粉面",
-      "confidence": 0.96,
-      "sourceImageId": "image-1",
-      "sourceFileName": "order.png"
-    }
-  ]
+  "foodName": "番茄牛腩饭",
+  "category": "米饭",
+  "confidence": 0.93
 }
 ```
 
-服务端可以使用支持图片输入的多模态模型或 OCR。模型密钥必须配置在服务端环境变量，例如 `OPENAI_API_KEY`，不能使用 `NEXT_PUBLIC_` 前缀。
+`confidence` 是 0–1 的数值。识别不到菜品时接口返回 HTTP 422；前端不会生成任何示例数据，也不会修改默认池。
 
-## 识别规则
+## 部署到 Vercel
 
-- 只提取已完成订单。
-- 一张图片包含多笔订单时全部提取。
-- 看不清的字段返回 `null`，不要猜测。
-- 不要返回示例菜品或随机菜名。
-- 输出必须是合法 JSON。
+1. 登录 [Vercel](https://vercel.com/new)，选择 GitHub 仓库 `4422tt/default-life`。
+2. 在 **Root Directory** 选择 `vercel-api`；Framework Preset 选 **Other**。
+3. 在 **Settings → Environment Variables** 新增 `OPENAI_API_KEY`，勾选 Production（也建议勾选 Preview）。不要使用 `NEXT_PUBLIC_` 前缀。
+4. 可选新增：
+   - `OPENAI_VISION_MODEL=gpt-4o-mini`
+   - `ALLOWED_ORIGINS=https://4422tt.github.io`
+5. 点击 Deploy。部署完成后复制形如 `https://your-project.vercel.app` 的地址。
+6. 在本项目根目录新建 `.env.local`，写入：
+
+   ```bash
+   NEXT_PUBLIC_ORDER_RECOGNITION_ENDPOINT=https://your-project.vercel.app/api/recognize-order
+   ```
+
+7. 重新构建并发布 GitHub Pages。静态页面需要在构建时读到这个公开的接口 URL：
+
+   ```powershell
+   $env:NEXT_PUBLIC_BASE_PATH='/default-life'
+   $env:NEXT_PUBLIC_ORDER_RECOGNITION_ENDPOINT='https://your-project.vercel.app/api/recognize-order'
+   .\node_modules\.bin\next.CMD build
+   ```
+
+   然后把 `out` 同步到 `docs`，提交并推送即可。`OPENAI_API_KEY` 不参与这一步，也绝不会出现在 GitHub Pages 的构建产物中。
+
+## 本地验证
+
+在 `vercel-api` 目录执行 `vercel dev`，并在本项目根目录设置：
+
+```bash
+NEXT_PUBLIC_ORDER_RECOGNITION_ENDPOINT=http://localhost:3000/api/recognize-order
+```
+
+Vercel 会在本地读取 `vercel-api/.env.local` 中的 `OPENAI_API_KEY`。该文件已被 `.gitignore` 忽略，不能提交。
+
+## 上线注意
+
+这个版本通过来源白名单限制浏览器调用，适合黑客松演示。公开接口仍可能被非浏览器客户端滥用；正式公开产品应再增加登录、服务端限流或 Vercel WAF，避免 OpenAI 额度被刷。

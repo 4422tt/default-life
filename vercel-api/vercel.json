@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/recognize-order.ts": {
+      "maxDuration": 30
+    }
+  }
+}
