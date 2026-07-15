@@ -78,20 +78,14 @@ function createRecognizedItem(
 }
 
 async function recognizeOneScreenshot(endpoint: string, file: File, imageIndex: number) {
-  const dataUrl = await readAsDataUrl(file);
+  const requestUrl = new URL(endpoint, "http://localhost");
+  requestUrl.searchParams.set("action", "image-import");
   let response: Response;
   try {
-    response = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        image: {
-          name: file.name,
-          mimeType: file.type,
-          dataUrl,
-        },
-      }),
-    });
+    // DeepSeek is used for text reasoning here. The uploaded image remains in
+    // the browser preview, while the API returns the intentional manual-entry
+    // fallback instead of pretending to OCR the screenshot.
+    response = await fetch(requestUrl.toString(), { method: "GET" });
   } catch {
     throw new OrderRecognitionError("NETWORK_ERROR", "识别服务暂时不可用，请稍后重试。");
   }
@@ -153,11 +147,10 @@ export async function analyzeLifeRule(userInput: string): Promise<LifeRuleRespon
 
   let response: Response;
   try {
-    response = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "life-rule", userInput }),
-    });
+    const requestUrl = new URL(endpoint, "http://localhost");
+    requestUrl.searchParams.set("action", "life-rule");
+    requestUrl.searchParams.set("userInput", userInput);
+    response = await fetch(requestUrl.toString(), { method: "GET" });
   } catch {
     throw new OrderRecognitionError("NETWORK_ERROR", "AI服务暂时不可用，请稍后重试。");
   }

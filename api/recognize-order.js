@@ -95,14 +95,45 @@ async function createLifeRule(userInput) {
   return parseResult(payload.choices?.[0]?.message?.content);
 }
 
+async function respondWithLifeRule(userInput, res, origin) {
+  if (!process.env.DEEPSEEK_API_KEY) return reply(res, 503, { error: "AI服务暂时不可用，请稍后重试" }, origin);
+  if (!userInput) return reply(res, 400, { error: "请输入订单名称或生活选择" }, origin);
+  try {
+    const result = await createLifeRule(userInput);
+    return result ? reply(res, 200, result, origin) : reply(res, 502, { error: "AI服务暂时不可用，请稍后重试" }, origin);
+  } catch {
+    return reply(res, 502, { error: "AI服务暂时不可用，请稍后重试" }, origin);
+  }
+}
+
+function manualEntryResult(res, origin) {
+  return reply(res, 200, {
+    result: "",
+    category: "",
+    confidence: 0,
+    defaultRule: "请输入订单名称，我会帮你建立默认规则。",
+    requiresManualEntry: true,
+  }, origin);
+}
+
 const handler = async function handler(req, res) {
   const origin = firstHeader(req.headers?.origin);
   if (origin && !allowedOrigins().has(origin)) return reply(res, 403, { error: "来源不被允许" }, origin);
   if (req.method === "OPTIONS") {
-    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
     if (origin && allowedOrigins().has(origin)) res.setHeader("Access-Control-Allow-Origin", origin);
     return res.status(204).end();
+  }
+
+  // GET avoids Vercel's platform-level JSON body parser for this project. The
+  // browser uses it for text rules and for the intentional screenshot fallback.
+  if (req.method === "GET") {
+    const query = req.query ?? {};
+    const action = firstHeader(query.action);
+    if (action === "life-rule") return respondWithLifeRule(firstHeader(query.userInput)?.trim() ?? "", res, origin);
+    if (action === "image-import") return manualEntryResult(res, origin);
+    return reply(res, 405, { error: "请求方式不被支持" }, origin);
   }
   if (req.method !== "POST") return reply(res, 405, { error: "请求方式不被支持" }, origin);
 
@@ -111,15 +142,8 @@ const handler = async function handler(req, res) {
   const data = body;
 
   if (data.action === "life-rule") {
-    if (!process.env.DEEPSEEK_API_KEY) return reply(res, 503, { error: "AI服务暂时不可用，请稍后重试" }, origin);
     const userInput = typeof data.userInput === "string" ? data.userInput.trim() : "";
-    if (!userInput) return reply(res, 400, { error: "请输入订单名称或生活选择" }, origin);
-    try {
-      const result = await createLifeRule(userInput);
-      return result ? reply(res, 200, result, origin) : reply(res, 502, { error: "AI服务暂时不可用，请稍后重试" }, origin);
-    } catch {
-      return reply(res, 502, { error: "AI服务暂时不可用，请稍后重试" }, origin);
-    }
+    return respondWithLifeRule(userInput, res, origin);
   }
 
   const image = data.image;
@@ -132,13 +156,7 @@ const handler = async function handler(req, res) {
     && dataUrl.length <= MAX_DATA_URL_LENGTH;
   if (!isValidImage) return reply(res, 400, { error: "图片格式无效" }, origin);
 
-  return reply(res, 200, {
-    result: "",
-    category: "",
-    confidence: 0,
-    defaultRule: "请输入订单名称，我会帮你建立默认规则。",
-    requiresManualEntry: true,
-  }, origin);
+  return manualEntryResult(res, origin);
 };
 
 module.exports = handler;
