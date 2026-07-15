@@ -25,12 +25,14 @@ export function PixelDie({
   animated = true,
   shifting = false,
   rolling = false,
+  resultVisible = false,
   value = 5,
 }: {
   compact?: boolean;
   animated?: boolean;
   shifting?: boolean;
   rolling?: boolean;
+  resultVisible?: boolean;
   value?: number;
 }) {
   if (compact) {
@@ -61,6 +63,7 @@ export function PixelDie({
       data-compact="false"
       data-animated={animated}
       data-rolling={rolling || shifting}
+      data-result-visible={resultVisible}
       data-value={value}
       role="img"
       aria-label={`黑色像素骰子，当前点数 ${value}`}

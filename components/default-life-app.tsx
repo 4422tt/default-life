@@ -547,7 +547,7 @@ function HomeView({
             <p>不是替你决定人生。<br />只是帮你跳过那些<br />不值得消耗注意力的小选择。</p>
           </div>
           <div className="p1-actions">
-            <button className="p1-button p1-button-primary" type="button" onClick={onOpenDefaults}>
+            <button className="p1-button p1-button-primary" type="button" onClick={startToday}>
               开始创建我的默认人生 <ArrowRight size={17} weight="bold" />
             </button>
             <button
@@ -570,7 +570,11 @@ function HomeView({
             aria-label="掷骰子，生成今天的世界线和点数"
             title={`今天的世界线 #${worldlineNumber}`}
           >
-            <PixelDie value={diceValue} rolling={isDiceRolling} />
+            <PixelDie
+              value={diceValue}
+              rolling={isDiceRolling}
+              resultVisible={worldlineOffset > 0 && !isDiceRolling}
+            />
           </button>
           <p className="p1-dice-status" aria-live="polite">
             {isDiceRolling
@@ -664,18 +668,30 @@ function ContextView({
   onBack: () => void;
   onSubmit: () => void;
 }) {
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }, []);
+
   return (
-    <section className="screen-enter mx-auto w-full max-w-5xl px-4 pb-28 pt-6 md:px-8 md:pb-12 md:pt-10">
-      <button className="app-button app-button-quiet -ml-3 min-h-10 px-3 text-sm" onClick={onBack}>
+    <section className="context-page screen-enter">
+      <button className="context-back" onClick={onBack}>
         <ArrowRight size={17} className="rotate-180" /> 返回
       </button>
-      <div className="mt-6 max-w-2xl">
-        <p className="text-sm font-semibold text-[var(--accent-strong)]">描述现在</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em] md:text-5xl">不用答得很精确</h1>
-        <p className="mt-4 text-sm leading-6 text-[var(--muted)] md:text-base">默认值已经选好，只修改今天有变化的部分即可。</p>
-      </div>
 
-      <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2">
+      <header className="context-header">
+        <div>
+          <p className="context-kicker">描述现在</p>
+          <h1>不用答得很精确</h1>
+          <p className="context-intro">默认值已经选好，只修改今天有变化的部分即可。</p>
+        </div>
+        <aside className="context-system-note" aria-label="当前决策方式">
+          <span className="context-system-mark" aria-hidden="true" />
+          <p>系统只读取今天的状态</p>
+          <strong>答案仍然来自你的默认池</strong>
+        </aside>
+      </header>
+
+      <div className="context-grid">
         <ContextField icon={Wallet} title="预算">
           <Segmented
             options={([1, 2, 3] as const).map((id) => ({ id, label: priceLabels[id] }))}
@@ -720,22 +736,22 @@ function ContextView({
         </ContextField>
       </div>
 
-      <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-xs leading-5 text-[var(--muted)]">推荐只在你设定的选择池内发生。</p>
-        <button className="app-button app-button-primary sm:min-w-44" onClick={onSubmit}>
+      <footer className="context-footer">
+        <p>推荐只在你设定的选择池内发生。</p>
+        <button className="context-submit" onClick={onSubmit}>
           给我一个答案 <Sparkle size={18} weight="fill" />
         </button>
-      </div>
+      </footer>
     </section>
   );
 }
 
 function ContextField({ icon: Icon, title, children }: { icon: typeof Wallet; title: string; children: React.ReactNode }) {
   return (
-    <fieldset className="app-surface p-4 md:p-5">
+    <fieldset className="context-field">
       <legend className="sr-only">{title}</legend>
-      <div className="mb-4 flex items-center gap-2 text-sm font-semibold">
-        <Icon size={18} className="text-[var(--accent-strong)]" />
+      <div className="context-field-title">
+        <Icon size={18} weight="regular" />
         {title}
       </div>
       {children}
@@ -753,9 +769,9 @@ function Segmented<T extends string | number>({
   onChange: (value: T) => void;
 }) {
   return (
-    <div className="segmented-control">
+    <div className="context-segmented">
       {options.map((option) => (
-        <button key={String(option.id)} className="segment px-2" aria-pressed={value === option.id} onClick={() => onChange(option.id)}>
+        <button key={String(option.id)} className="context-segment" aria-pressed={value === option.id} onClick={() => onChange(option.id)}>
           {option.label}
         </button>
       ))}
