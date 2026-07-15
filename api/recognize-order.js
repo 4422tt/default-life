@@ -37,6 +37,14 @@ function parseBody(body) {
   }
 }
 
+async function readRequestBody(req) {
+  if (req.body !== undefined && req.body !== null) return req.body;
+  if (typeof req.on !== "function") return null;
+  const chunks = [];
+  for await (const chunk of req) chunks.push(Buffer.from(chunk));
+  return Buffer.concat(chunks).toString("utf8");
+}
+
 function parseResult(content) {
   if (typeof content !== "string") return null;
   try {
@@ -88,7 +96,7 @@ module.exports = async function handler(req, res) {
   }
   if (req.method !== "POST") return reply(res, 405, { error: "请求方式不被支持" }, origin);
 
-  const body = parseBody(req.body);
+  const body = parseBody(await readRequestBody(req));
   if (!body || typeof body !== "object") return reply(res, 400, { error: "请求内容无效" }, origin);
   const data = body;
 
