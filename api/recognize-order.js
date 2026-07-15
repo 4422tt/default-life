@@ -95,7 +95,7 @@ async function createLifeRule(userInput) {
   return parseResult(payload.choices?.[0]?.message?.content);
 }
 
-module.exports = async function handler(req, res) {
+const handler = async function handler(req, res) {
   const origin = firstHeader(req.headers?.origin);
   if (origin && !allowedOrigins().has(origin)) return reply(res, 403, { error: "来源不被允许" }, origin);
   if (req.method === "OPTIONS") {
@@ -140,3 +140,6 @@ module.exports = async function handler(req, res) {
     requiresManualEntry: true,
   }, origin);
 };
+
+module.exports = handler;
+module.exports.config = { api: { bodyParser: false } };
