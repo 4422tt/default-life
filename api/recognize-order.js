@@ -21,14 +21,17 @@ function allowedOrigins() {
 
 function reply(res, status, body, origin) {
   res.setHeader("Cache-Control", "no-store");
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
   if (origin && allowedOrigins().has(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Vary", "Origin");
   }
-  return res.status(status).json(body);
+  return res.status(status).send(JSON.stringify(body));
 }
 
 function parseBody(body) {
+  if (Buffer.isBuffer(body)) body = body.toString("utf8");
+  if (body instanceof Uint8Array) body = Buffer.from(body).toString("utf8");
   if (typeof body !== "string") return body;
   try {
     return JSON.parse(body);
@@ -38,7 +41,14 @@ function parseBody(body) {
 }
 
 async function readRequestBody(req) {
-  if (req.body !== undefined && req.body !== null) return req.body;
+  if (req.body !== undefined && req.body !== null) {
+    if (typeof req.body.on === "function") {
+      const chunks = [];
+      for await (const chunk of req.body) chunks.push(Buffer.from(chunk));
+      return Buffer.concat(chunks).toString("utf8");
+    }
+    return req.body;
+  }
   if (typeof req.on !== "function") return null;
   const chunks = [];
   for await (const chunk of req) chunks.push(Buffer.from(chunk));
