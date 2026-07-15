@@ -43,6 +43,7 @@ export type OrderRecognitionErrorCode =
   | "NETWORK_ERROR"
   | "INVALID_RESPONSE"
   | "NO_ORDERS"
+  | "MANUAL_ENTRY_REQUIRED"
   | "UNREADABLE_IMAGE";
 
 export class OrderRecognitionError extends Error {

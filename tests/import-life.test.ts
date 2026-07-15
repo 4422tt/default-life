@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { db, initializeDatabase } from "@/lib/db";
 import { createLifeImportAnalysis } from "@/lib/import-life";
 import { normalizeOrderImportResult, normalizeOrderText } from "@/lib/order-normalization";
-import { analyzeOrderScreenshots } from "@/lib/order-recognition";
+import { analyzeLifeRule, analyzeOrderScreenshots } from "@/lib/order-recognition";
 import { commitLifeImport } from "@/lib/storage";
 
 describe("real order import workflow", () => {
@@ -45,22 +45,37 @@ describe("real order import workflow", () => {
     });
   });
 
-  it("maps the configured vision response into a real imported order", async () => {
+  it("requires a real order name after screenshot upload instead of inventing OCR data", async () => {
     process.env.NEXT_PUBLIC_ORDER_RECOGNITION_ENDPOINT = "https://recognition.example.test/api/recognize-order";
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
-      foodName: "鲜虾蟹籽云吞面",
-      category: "云吞面",
-      confidence: 0.94,
+      result: "",
+      category: "",
+      confidence: 0,
+      defaultRule: "请输入订单名称，我会帮你建立默认规则。",
+      requiresManualEntry: true,
     }), { status: 200, headers: { "content-type": "application/json" } })));
 
     const file = new File(["order"], "order.png", { type: "image/png" });
-    const result = await analyzeOrderScreenshots([file]);
+    await expect(analyzeOrderScreenshots([file])).rejects.toMatchObject({
+      code: "MANUAL_ENTRY_REQUIRED",
+    });
+  });
 
-    expect(result.items).toHaveLength(1);
-    expect(result.items[0].dishName).toBe("鲜虾蟹籽云吞面");
-    expect(result.items[0].category).toBe("云吞面");
-    expect(result.items[0].sourceFileName).toBe("order.png");
-    expect(JSON.stringify(result)).not.toContain("番茄牛腩饭");
+  it("keeps the DeepSeek life-rule response format stable for the frontend", async () => {
+    process.env.NEXT_PUBLIC_ORDER_RECOGNITION_ENDPOINT = "https://recognition.example.test/api/recognize-order";
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
+      result: "鲜虾蟹籽云吞面",
+      category: "晚餐",
+      confidence: 0.94,
+      defaultRule: "工作日晚餐优先选择30分钟内解决。",
+    }), { status: 200, headers: { "content-type": "application/json" } })));
+
+    const result = await analyzeLifeRule("订单名称：鲜虾蟹籽云吞面；预算：27元");
+
+    expect(result.result).toBe("鲜虾蟹籽云吞面");
+    expect(result.category).toBe("晚餐");
+    expect(result.confidence).toBe(0.94);
+    expect(result.defaultRule).toBe("工作日晚餐优先选择30分钟内解决。");
   });
 
   it("merges only the same normalized merchant and dish", async () => {

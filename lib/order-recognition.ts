@@ -10,10 +10,12 @@ const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const MAX_IMAGE_SIZE = 3 * 1024 * 1024;
 const MAX_IMAGE_COUNT = 12;
 
-type VisionResponse = {
-  foodName: string;
+export type LifeRuleResponse = {
+  result: string;
   category: string;
   confidence: number | string;
+  defaultRule: string;
+  requiresManualEntry?: boolean;
 };
 
 function validateFiles(files: File[]) {
@@ -33,12 +35,14 @@ function validateFiles(files: File[]) {
   }
 }
 
-function isVisionResponse(value: unknown): value is VisionResponse {
+function isLifeRuleResponse(value: unknown): value is LifeRuleResponse {
   if (!value || typeof value !== "object") return false;
   const payload = value as Record<string, unknown>;
-  return typeof payload.foodName === "string"
+  return typeof payload.result === "string"
     && typeof payload.category === "string"
-    && (typeof payload.confidence === "number" || typeof payload.confidence === "string");
+    && typeof payload.defaultRule === "string"
+    && (typeof payload.confidence === "number" || typeof payload.confidence === "string")
+    && (payload.requiresManualEntry === undefined || typeof payload.requiresManualEntry === "boolean");
 }
 
 async function readAsDataUrl(file: File): Promise<string> {
@@ -55,14 +59,14 @@ async function readAsDataUrl(file: File): Promise<string> {
 }
 
 function createRecognizedItem(
-  payload: VisionResponse,
+  payload: LifeRuleResponse,
   file: File,
   imageIndex: number,
 ): RecognizedOrderItem {
   return {
     id: `vision-${imageIndex + 1}`,
     merchantName: null,
-    dishName: payload.foodName.trim(),
+    dishName: payload.result.trim(),
     quantity: 1,
     unitPrice: null,
     paidAmount: null,
@@ -107,11 +111,14 @@ async function recognizeOneScreenshot(endpoint: string, file: File, imageIndex: 
   } catch {
     throw new OrderRecognitionError("INVALID_RESPONSE", "识别结果格式异常，请重新上传。");
   }
-  if (!isVisionResponse(payload)) {
+  if (!isLifeRuleResponse(payload)) {
     throw new OrderRecognitionError("INVALID_RESPONSE", "识别结果格式异常，请重新上传。");
   }
-  if (!payload.foodName.trim()) {
-    throw new OrderRecognitionError("NO_ORDERS", "没有在图片中发现清晰的订单菜品，请上传完整订单页面。");
+  if (payload.requiresManualEntry) {
+    throw new OrderRecognitionError("MANUAL_ENTRY_REQUIRED", payload.defaultRule || "请输入订单名称，我会帮你建立默认规则。");
+  }
+  if (!payload.result.trim()) {
+    throw new OrderRecognitionError("NO_ORDERS", "没有得到可用的订单名称，请手动填写后继续。");
   }
   return createRecognizedItem(payload, file, imageIndex);
 }
@@ -136,4 +143,32 @@ export async function analyzeOrderScreenshots(files: File[]): Promise<OrderImpor
     throw new OrderRecognitionError("NO_ORDERS", "没有在图片中发现清晰的订单菜品，请上传完整订单页面。");
   }
   return result;
+}
+
+export async function analyzeLifeRule(userInput: string): Promise<LifeRuleResponse> {
+  const endpoint = process.env.NEXT_PUBLIC_ORDER_RECOGNITION_ENDPOINT?.trim();
+  if (!endpoint) {
+    throw new OrderRecognitionError("SERVICE_NOT_CONFIGURED", "当前未配置 AI 服务。你仍然可以手动添加到默认池。");
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "life-rule", userInput }),
+    });
+  } catch {
+    throw new OrderRecognitionError("NETWORK_ERROR", "AI服务暂时不可用，请稍后重试。");
+  }
+  if (!response.ok) throw new OrderRecognitionError("NETWORK_ERROR", "AI服务暂时不可用，请稍后重试。");
+
+  let payload: unknown;
+  try {
+    payload = await response.json();
+  } catch {
+    throw new OrderRecognitionError("INVALID_RESPONSE", "AI返回格式异常，请稍后重试。");
+  }
+  if (!isLifeRuleResponse(payload)) throw new OrderRecognitionError("INVALID_RESPONSE", "AI返回格式异常，请稍后重试。");
+  return payload;
 }

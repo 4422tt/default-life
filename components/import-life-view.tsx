@@ -20,7 +20,7 @@ import {
 } from "@phosphor-icons/react";
 import { FoodSprite } from "@/components/game-visuals";
 import { createLifeImportAnalysis } from "@/lib/import-life";
-import { analyzeOrderScreenshots } from "@/lib/order-recognition";
+import { analyzeLifeRule, analyzeOrderScreenshots } from "@/lib/order-recognition";
 import { commitLifeImport } from "@/lib/storage";
 import type { LifeImportAnalysis, LifeImportCandidate, LifeImportRecord } from "@/lib/types";
 import { OrderRecognitionError, type OrderImportResult } from "@/types/order-import";
@@ -33,8 +33,8 @@ interface ImportLifeViewProps {
 }
 
 const analysisSteps = [
-  { title: "正在读取截图", detail: "检查文件并准备订单图片" },
-  { title: "正在识别订单", detail: "读取商家、菜品、数量和价格" },
+  { title: "正在读取截图", detail: "保留你选择的真实订单图片" },
+  { title: "正在建立选择线索", detail: "如有需要，补充订单名称" },
   { title: "正在整理你的默认值", detail: "合并重复项目并生成可编辑结果" },
 ];
 
@@ -105,8 +105,14 @@ export function ImportLifeView({ latestImport, onBack }: ImportLifeViewProps) {
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
       setPhase("results");
     } catch (cause) {
-      setError(cause instanceof OrderRecognitionError ? cause.message : "识别服务暂时不可用，请稍后重试。");
-      setPhase("error");
+      if (cause instanceof OrderRecognitionError && cause.code === "MANUAL_ENTRY_REQUIRED") {
+        setError(cause.message);
+        setManualOpen(true);
+        setPhase("upload");
+      } else {
+        setError(cause instanceof OrderRecognitionError ? cause.message : "AI服务暂时不可用，请稍后重试。");
+        setPhase("error");
+      }
     }
   };
 
@@ -225,17 +231,17 @@ function ImportHub({ latestImport, onBack, onOpenUpload, onOpenManual, onOpenPro
       <div className="mt-7 max-w-3xl">
         <p className="text-sm font-semibold text-[var(--accent-strong)]">生活导入中心</p>
         <h1 className="mt-3 text-4xl font-semibold leading-[1.08] tracking-[-0.05em] md:text-6xl">把过去的选择，<br />变成未来的默认值。</h1>
-        <p className="mt-5 max-w-xl text-base leading-7 text-[var(--muted)] md:text-lg">上传消费记录，识别服务会读取真实订单内容。系统只会在你确认后修改默认池。</p>
+        <p className="mt-5 max-w-xl text-base leading-7 text-[var(--muted)] md:text-lg">上传过去的订单截图，再补充订单名称。系统会把真实选择沉淀为默认规则。</p>
       </div>
       <div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-12">
         <article className="app-surface-raised relative overflow-hidden p-6 md:col-span-7 md:row-span-2 md:p-8">
           <div className="grid h-14 w-14 place-items-center rounded-[16px] bg-[var(--accent)] text-[var(--accent-ink)]"><ImageSquare size={28} weight="fill" /></div>
-          <h2 className="mt-8 text-2xl font-semibold tracking-[-0.03em] md:text-3xl">上传外卖截图</h2>
-          <p className="mt-3 max-w-md text-sm leading-6 text-[var(--muted)] md:text-base">识别美团、饿了么和闪购订单中的商家、菜品、数量与价格。</p>
-          <button className="app-button app-button-primary mt-8" onClick={onOpenUpload}>开始识别 <ArrowRight size={18} weight="bold" /></button>
+          <h2 className="mt-8 text-2xl font-semibold tracking-[-0.03em] md:text-3xl">导入外卖截图</h2>
+          <p className="mt-3 max-w-md text-sm leading-6 text-[var(--muted)] md:text-base">把过去的选择带进来，补充名称后让系统建立可复用的默认规则。</p>
+          <button className="app-button app-button-primary mt-8" onClick={onOpenUpload}>开始导入 <ArrowRight size={18} weight="bold" /></button>
         </article>
         <article className="app-surface p-6 md:col-span-5">
-          <div className="flex items-start gap-4"><div className="grid h-11 w-11 shrink-0 place-items-center rounded-[13px] bg-[var(--accent-soft)] text-[var(--accent-strong)]"><Database size={21} /></div><div><h2 className="text-xl font-semibold tracking-[-0.02em]">识别服务状态</h2><p className="mt-2 text-sm leading-6 text-[var(--muted)]">{recognitionConfigured ? "已配置真实订单识别接口。" : "当前未配置图片识别服务。"}</p></div></div>
+          <div className="flex items-start gap-4"><div className="grid h-11 w-11 shrink-0 place-items-center rounded-[13px] bg-[var(--accent-soft)] text-[var(--accent-strong)]"><Database size={21} /></div><div><h2 className="text-xl font-semibold tracking-[-0.02em]">生活规则服务</h2><p className="mt-2 text-sm leading-6 text-[var(--muted)]">{recognitionConfigured ? "已配置 DeepSeek 默认规则分析。" : "当前未配置 AI 服务。"}</p></div></div>
           {!recognitionConfigured && <p className="mt-4 rounded-[10px] bg-[var(--surface-soft)] p-3 text-xs leading-5 text-[var(--muted)]">上传后不会返回示例结果。请配置服务，或使用手动添加。</p>}
         </article>
         <article className="app-soft p-6 md:col-span-5">
@@ -260,7 +266,7 @@ function UploadView({ previews, error, inputRef, onBack, onFiles, onRemove, onAn
   return (
     <>
       <button className="app-button app-button-quiet -ml-3 min-h-10 px-3 text-sm" onClick={onBack}><ArrowLeft size={17} /> 返回</button>
-      <div className="mt-7 max-w-2xl"><h1 className="text-3xl font-semibold tracking-[-0.04em] md:text-5xl">上传外卖截图</h1><p className="mt-4 text-sm leading-6 text-[var(--muted)] md:text-base">支持 JPG、PNG、WEBP，多图上传，单张不超过 3MB。请上传清晰的完整订单页面。</p></div>
+      <div className="mt-7 max-w-2xl"><h1 className="text-3xl font-semibold tracking-[-0.04em] md:text-5xl">导入外卖截图</h1><p className="mt-4 text-sm leading-6 text-[var(--muted)] md:text-base">支持 JPG、PNG、WEBP，多图上传，单张不超过 3MB。稍后补充订单名称，系统会生成默认规则。</p></div>
       <div className="mt-8 grid grid-cols-1 gap-5 lg:grid-cols-[1fr_0.72fr]">
         <label className="upload-dropzone grid min-h-80 place-items-center p-7 text-center" htmlFor="life-screenshots" onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); onFiles(Array.from(event.dataTransfer.files)); }}>
           <div><div className="mx-auto grid h-16 w-16 place-items-center rounded-[16px] bg-[var(--accent-soft)] text-[var(--accent-strong)]"><UploadSimple size={30} weight="bold" /></div><h2 className="mt-6 text-xl font-semibold">拖拽图片到这里</h2><p className="mt-2 text-sm leading-6 text-[var(--muted)]">或点击选择图片，最多 12 张</p><span className="app-button app-button-secondary mt-5">选择图片</span></div>
@@ -272,7 +278,7 @@ function UploadView({ previews, error, inputRef, onBack, onFiles, onRemove, onAn
         </aside>
       </div>
       {error && <p className="mt-4 rounded-[10px] bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]" role="alert">{error}</p>}
-      <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between"><p className="text-xs leading-5 text-[var(--muted)]">图片只会发送到配置的订单识别服务，不会生成随机菜名。</p><button className="app-button app-button-primary sm:min-w-48" onClick={onAnalyze}>分析 {previews.length || ""} 张截图 <Sparkle size={18} weight="fill" /></button></div>
+      <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between"><p className="text-xs leading-5 text-[var(--muted)]">系统不会生成随机菜名；截图导入后会要求你确认真实订单名称。</p><button className="app-button app-button-primary sm:min-w-48" onClick={onAnalyze}>继续导入 {previews.length || ""} 张截图 <Sparkle size={18} weight="fill" /></button></div>
     </>
   );
 }
@@ -317,12 +323,38 @@ function ManualOrderDialog({ onClose, onSaved }: { onClose: () => void; onSaved:
   const [category, setCategory] = useState("");
   const [frequency, setFrequency] = useState("1");
   const [error, setError] = useState("");
+  const [analyzingRule, setAnalyzingRule] = useState(false);
   const save = async () => {
     if (!dishName.trim()) { setError("请填写菜品名称。"); return; }
-    const candidate: LifeImportCandidate = { id: `manual-${Date.now()}`, name: dishName.trim(), merchantName: merchantName.trim() || null, frequency: Math.max(1, Number(frequency) || 1), paidAmount: price ? Number(price) : null, unitPrice: price ? Number(price) : null, category: category.trim() || null, confidence: 1, kind: "delivery", priceLevel: !price || Number(price) < 20 ? 1 : Number(price) <= 50 ? 2 : 3, love: 3, health: 3, etaMinutes: 30, weatherTags: ["normal"], energyTags: ["normal"], companionTags: ["solo"] };
-    const analysis: LifeImportAnalysis = { candidates: [candidate], totalOrders: candidate.frequency, profile: { windowDays: 0, familiarDinnerShare: candidate.frequency > 1 ? 100 : 0, keywords: [], taste: "暂时没有足够数据判断口味偏好", budgetLabel: candidate.priceLevel === 1 ? "低预算" : candidate.priceLevel === 2 ? "中预算" : "高预算", dinnerPattern: "暂时没有足够数据判断晚餐节奏", weekdayRule: "等待更多真实订单", weekendRule: "等待更多真实订单", insight: "画像只基于你确认导入的真实订单生成。" } };
-    await commitLifeImport({ source: "records", fileCount: 0, analysis, candidates: [candidate] });
-    onSaved();
+    setAnalyzingRule(true);
+    setError("");
+    try {
+      const description = [
+        `订单名称：${dishName.trim()}`,
+        merchantName.trim() ? `商家：${merchantName.trim()}` : "",
+        category.trim() ? `分类：${category.trim()}` : "",
+        price ? `预算：${price}元` : "",
+        `历史选择次数：${Math.max(1, Number(frequency) || 1)}`,
+      ].filter(Boolean).join("；");
+      let aiRule: Awaited<ReturnType<typeof analyzeLifeRule>> | null = null;
+      try {
+        aiRule = await analyzeLifeRule(description);
+      } catch {
+        // Manual data remains valid even when the optional AI rule service is unavailable.
+      }
+      const resolvedName = aiRule?.result || dishName.trim();
+      const resolvedCategory = aiRule?.category || category.trim() || null;
+      const aiConfidence = Number(aiRule?.confidence);
+      const candidate: LifeImportCandidate = { id: `manual-${Date.now()}`, name: resolvedName, merchantName: merchantName.trim() || null, frequency: Math.max(1, Number(frequency) || 1), paidAmount: price ? Number(price) : null, unitPrice: price ? Number(price) : null, category: resolvedCategory, confidence: Number.isFinite(aiConfidence) ? Math.max(0, Math.min(1, aiConfidence)) : 1, kind: "delivery", priceLevel: !price || Number(price) < 20 ? 1 : Number(price) <= 50 ? 2 : 3, love: 3, health: 3, etaMinutes: 30, weatherTags: ["normal"], energyTags: ["normal"], companionTags: ["solo"] };
+      const defaultRule = aiRule?.defaultRule || "已记录为你的真实选择；系统会在积累更多订单后形成稳定默认规则。";
+      const analysis: LifeImportAnalysis = { candidates: [candidate], totalOrders: candidate.frequency, profile: { windowDays: 0, familiarDinnerShare: candidate.frequency > 1 ? 100 : 0, keywords: aiRule ? ["已建立默认规则"] : [], taste: "暂时没有足够数据判断口味偏好", budgetLabel: candidate.priceLevel === 1 ? "低预算" : candidate.priceLevel === 2 ? "中预算" : "高预算", dinnerPattern: "暂时没有足够数据判断晚餐节奏", weekdayRule: defaultRule, weekendRule: defaultRule, insight: defaultRule } };
+      await commitLifeImport({ source: "records", fileCount: 0, analysis, candidates: [candidate] });
+      onSaved();
+    } catch {
+      setError("保存失败，请稍后重试。现有默认池没有被修改。");
+    } finally {
+      setAnalyzingRule(false);
+    }
   };
-  return <div className="fixed inset-0 z-50 grid place-items-center bg-black/20 p-4" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><section className="app-surface-raised w-full max-w-lg p-6" role="dialog" aria-modal="true" aria-labelledby="manual-order-title"><div className="flex items-center justify-between"><h2 id="manual-order-title" className="text-xl font-semibold">手动添加订单</h2><button className="app-icon-button" aria-label="关闭" onClick={onClose}><X size={17} /></button></div><div className="mt-6 grid gap-4 sm:grid-cols-2"><Field label="商家名称" value={merchantName} onChange={setMerchantName} /><Field label="菜品名称" value={dishName} onChange={setDishName} /><Field label="价格" type="number" value={price} onChange={setPrice} /><Field label="分类" value={category} onChange={setCategory} /><Field label="历史次数" type="number" value={frequency} onChange={setFrequency} /></div>{error && <p className="mt-4 text-sm text-[var(--danger)]">{error}</p>}<div className="mt-6 flex justify-end gap-3"><button className="app-button app-button-secondary" onClick={onClose}>取消</button><button className="app-button app-button-primary" onClick={save}>加入默认池</button></div></section></div>;
+  return <div className="fixed inset-0 z-50 grid place-items-center bg-black/20 p-4" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><section className="app-surface-raised w-full max-w-lg p-6" role="dialog" aria-modal="true" aria-labelledby="manual-order-title"><div className="flex items-center justify-between"><h2 id="manual-order-title" className="text-xl font-semibold">补充订单名称</h2><button className="app-icon-button" aria-label="关闭" onClick={onClose}><X size={17} /></button></div><p className="mt-3 text-sm leading-6 text-[var(--muted)]">请输入订单名称，我会帮你建立默认规则。</p><div className="mt-6 grid gap-4 sm:grid-cols-2"><Field label="商家名称" value={merchantName} onChange={setMerchantName} /><Field label="菜品名称" value={dishName} onChange={setDishName} /><Field label="价格" type="number" value={price} onChange={setPrice} /><Field label="分类" value={category} onChange={setCategory} /><Field label="历史次数" type="number" value={frequency} onChange={setFrequency} /></div>{error && <p className="mt-4 text-sm text-[var(--danger)]">{error}</p>}<div className="mt-6 flex justify-end gap-3"><button className="app-button app-button-secondary" disabled={analyzingRule} onClick={onClose}>取消</button><button className="app-button app-button-primary" disabled={analyzingRule} onClick={save}>{analyzingRule ? "正在建立规则" : "建立默认规则"}</button></div></section></div>;
 }
