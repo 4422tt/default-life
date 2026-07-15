@@ -1,22 +1,3 @@
-type VercelRequest = {
-  method?: string;
-  headers: Record<string, string | string[] | undefined>;
-  body?: unknown;
-};
-
-type VercelResponse = {
-  setHeader(name: string, value: string): void;
-  status(code: number): VercelResponse;
-  json(body: unknown): void;
-};
-
-type LifeRuleResult = {
-  result: string;
-  category: string;
-  confidence: number;
-  defaultRule: string;
-};
-
 const DEFAULT_ALLOWED_ORIGINS = new Set([
   "https://4422tt.github.io",
   "http://localhost:3000",
@@ -29,39 +10,37 @@ const SYSTEM_PROMPT = `你是 Default Life 的生活操作系统助手。
 请根据用户提供的信息：提取习惯、识别偏好、形成默认规则、输出未来可执行方案。
 回答简洁、结构化，并且只输出 json。`;
 
-function firstHeader(value: string | string[] | undefined) {
+function firstHeader(value) {
   return Array.isArray(value) ? value[0] : value;
 }
 
 function allowedOrigins() {
-  const configured = process.env.ALLOWED_ORIGINS?.split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean) ?? [];
+  const configured = process.env.ALLOWED_ORIGINS?.split(",").map((origin) => origin.trim()).filter(Boolean) ?? [];
   return new Set([...DEFAULT_ALLOWED_ORIGINS, ...configured]);
 }
 
-function reply(res: VercelResponse, status: number, body: unknown, origin?: string) {
+function reply(res, status, body, origin) {
   res.setHeader("Cache-Control", "no-store");
   if (origin && allowedOrigins().has(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Vary", "Origin");
   }
-  res.status(status).json(body);
+  return res.status(status).json(body);
 }
 
-function parseBody(body: unknown) {
+function parseBody(body) {
   if (typeof body !== "string") return body;
   try {
-    return JSON.parse(body) as unknown;
+    return JSON.parse(body);
   } catch {
     return null;
   }
 }
 
-function parseResult(content: unknown): LifeRuleResult | null {
+function parseResult(content) {
   if (typeof content !== "string") return null;
   try {
-    const value = JSON.parse(content) as Partial<LifeRuleResult>;
+    const value = JSON.parse(content);
     const confidence = Number(value.confidence);
     if (typeof value.result !== "string" || typeof value.category !== "string" || typeof value.defaultRule !== "string" || !Number.isFinite(confidence)) return null;
     return {
@@ -75,7 +54,7 @@ function parseResult(content: unknown): LifeRuleResult | null {
   }
 }
 
-async function createLifeRule(userInput: string): Promise<LifeRuleResult | null> {
+async function createLifeRule(userInput) {
   const response = await fetch("https://api.deepseek.com/chat/completions", {
     method: "POST",
     headers: {
@@ -94,24 +73,24 @@ async function createLifeRule(userInput: string): Promise<LifeRuleResult | null>
     }),
   });
   if (!response.ok) return null;
-  const payload = await response.json() as { choices?: Array<{ message?: { content?: unknown } }> };
+  const payload = await response.json();
   return parseResult(payload.choices?.[0]?.message?.content);
 }
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const origin = firstHeader(req.headers.origin);
+module.exports = async function handler(req, res) {
+  const origin = firstHeader(req.headers?.origin);
   if (origin && !allowedOrigins().has(origin)) return reply(res, 403, { error: "来源不被允许" }, origin);
   if (req.method === "OPTIONS") {
     res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
     if (origin && allowedOrigins().has(origin)) res.setHeader("Access-Control-Allow-Origin", origin);
-    return res.status(204).json({});
+    return res.status(204).end();
   }
   if (req.method !== "POST") return reply(res, 405, { error: "请求方式不被支持" }, origin);
 
   const body = parseBody(req.body);
   if (!body || typeof body !== "object") return reply(res, 400, { error: "请求内容无效" }, origin);
-  const data = body as Record<string, unknown>;
+  const data = body;
 
   if (data.action === "life-rule") {
     if (!process.env.DEEPSEEK_API_KEY) return reply(res, 503, { error: "AI服务暂时不可用，请稍后重试" }, origin);
@@ -119,15 +98,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!userInput) return reply(res, 400, { error: "请输入订单名称或生活选择" }, origin);
     try {
       const result = await createLifeRule(userInput);
-      return result
-        ? reply(res, 200, result, origin)
-        : reply(res, 502, { error: "AI服务暂时不可用，请稍后重试" }, origin);
+      return result ? reply(res, 200, result, origin) : reply(res, 502, { error: "AI服务暂时不可用，请稍后重试" }, origin);
     } catch {
       return reply(res, 502, { error: "AI服务暂时不可用，请稍后重试" }, origin);
     }
   }
 
-  const image = data.image as Record<string, unknown> | undefined;
+  const image = data.image;
   const mimeType = image?.mimeType;
   const dataUrl = image?.dataUrl;
   const isValidImage = typeof mimeType === "string"
@@ -144,4 +121,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     defaultRule: "请输入订单名称，我会帮你建立默认规则。",
     requiresManualEntry: true,
   }, origin);
-}
+};
