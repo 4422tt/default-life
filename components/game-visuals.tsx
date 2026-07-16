@@ -68,38 +68,58 @@ export function PixelDie({
       role="img"
       aria-label={`黑色像素骰子，当前点数 ${value}`}
     >
-      <span className="pixel-die-reference-stage" aria-hidden="true">
-        <img
-          className="pixel-die-reference-image pixel-die-reference-idle"
-          src={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/assets/hero-die-reference.png`}
-          alt=""
-        />
-        <img
-          className="pixel-die-reference-image pixel-die-reference-rolling"
-          src={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/assets/hero-die-rolling.png`}
-          alt=""
-        />
-        {resultVisible && <ResultDieFace value={value} />}
+      <span className="pixel-die-cube" aria-hidden="true">
+        <DieFace side="front" value={value} />
+        <DieFace side="back" value={oppositeFace(value)} />
+        <DieFace side="right" value={rightFace(value)} />
+        <DieFace side="left" value={leftFace(value)} />
+        <DieFace side="top" value={topFace(value)} />
+        <DieFace side="bottom" value={bottomFace(value)} />
       </span>
     </span>
   );
 }
 
-function ResultDieFace({ value }: { value: number }) {
-  const positions = {
+const pipPositions = {
     1: ["center"],
     2: ["top-left", "bottom-right"],
     3: ["top-left", "center", "bottom-right"],
     4: ["top-left", "top-right", "bottom-left", "bottom-right"],
     5: ["top-left", "top-right", "center", "bottom-left", "bottom-right"],
     6: ["top-left", "top-right", "middle-left", "middle-right", "bottom-left", "bottom-right"],
-  } as const;
-  const safeValue = Math.min(6, Math.max(1, Math.round(value))) as keyof typeof positions;
+  } as const satisfies Record<number, readonly string[]>;
+
+function safeDieValue(value: number) {
+  return Math.min(6, Math.max(1, Math.round(value))) as keyof typeof pipPositions;
+}
+
+function oppositeFace(value: number) {
+  return 7 - safeDieValue(value);
+}
+
+function rightFace(value: number) {
+  return ((safeDieValue(value) + 1) % 6) + 1;
+}
+
+function leftFace(value: number) {
+  return ((safeDieValue(value) + 3) % 6) + 1;
+}
+
+function topFace(value: number) {
+  return ((safeDieValue(value) + 4) % 6) + 1;
+}
+
+function bottomFace(value: number) {
+  return ((safeDieValue(value) + 2) % 6) + 1;
+}
+
+function DieFace({ side, value }: { side: "front" | "back" | "right" | "left" | "top" | "bottom"; value: number }) {
+  const safeValue = safeDieValue(value);
 
   return (
-    <span className="pixel-die-result-face" data-face-value={safeValue}>
-      {positions[safeValue].map((position) => (
-        <span className={`pixel-result-pip pixel-result-pip-${position}`} key={position} />
+    <span className={`pixel-die-face pixel-die-face-${side}`} data-face-value={safeValue}>
+      {pipPositions[safeValue].map((position) => (
+        <span className={`pixel-cube-pip pixel-cube-pip-${position}`} key={position} />
       ))}
     </span>
   );

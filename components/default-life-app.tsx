@@ -484,7 +484,7 @@ function HomeView({
   const [worldlineOffset, setWorldlineOffset] = useState(0);
   const [character, setCharacter] = useState<"girl" | "boy">("girl");
   const [diceValue, setDiceValue] = useState(5);
-  const [isDiceRolling, setIsDiceRolling] = useState(false);
+  const [dicePhase, setDicePhase] = useState<"idle" | "rolling" | "result">("idle");
   const diceTimerRef = useRef<number | null>(null);
   const activeOptions = options.filter((option) => option.active);
   const lastDecision = [...decisions].sort((a, b) => b.completedAt.localeCompare(a.completedAt))[0];
@@ -496,21 +496,21 @@ function HomeView({
     ? activeOptions[(dailySeed + worldlineOffset) % activeOptions.length]
     : undefined;
   const selectedOption = worldlineOption ?? previewOption;
-  const featuredOption = activeOptions.find((option) => /麻辣烫|火锅|冒菜/.test(option.name)) ?? selectedOption;
   const assetBasePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
   const startToday = canBegin ? onBegin : onOpenDefaults;
+  const isDiceRolling = dicePhase === "rolling";
 
   const rollDice = () => {
     if (isDiceRolling) return;
     const nextValue = Math.floor(Math.random() * 6) + 1;
-    setDiceValue(nextValue);
-    setWorldlineOffset((current) => current + nextValue);
-    setIsDiceRolling(true);
+    setDicePhase("rolling");
     if (diceTimerRef.current !== null) window.clearTimeout(diceTimerRef.current);
     diceTimerRef.current = window.setTimeout(() => {
-      setIsDiceRolling(false);
+      setDiceValue(nextValue);
+      setWorldlineOffset((current) => current + nextValue);
+      setDicePhase("result");
       diceTimerRef.current = null;
-    }, 1120);
+    }, 1420);
   };
 
   useEffect(() => {
@@ -573,15 +573,15 @@ function HomeView({
             <PixelDie
               value={diceValue}
               rolling={isDiceRolling}
-              resultVisible={worldlineOffset > 0 && !isDiceRolling}
+              resultVisible={dicePhase === "result"}
             />
           </button>
           <p className="p1-dice-status" aria-live="polite">
             {isDiceRolling
-              ? "骰子正在滚动..."
+              ? "命运正在生成中…"
               : worldlineOffset === 0
-                ? "命运正在生成..."
-                : `骰子结果：${diceValue}，世界线 #${worldlineNumber}`}
+                ? "把重复选择，交给系统。"
+                : `今日世界线 #${worldlineNumber} · 骰子结果 ${diceValue}`}
           </p>
         </div>
 
@@ -594,7 +594,7 @@ function HomeView({
               alt="一碗麻辣烫像素插画"
             />
           </div>
-          <h2>{featuredOption?.name ?? "楼下麻辣烫"}</h2>
+          <h2>{selectedOption?.name ?? "楼下麻辣烫"}</h2>
           <p>已从「美食默认池」中选择</p>
           <footer><CheckCircle size={16} weight="fill" /> 已决定</footer>
         </aside>
@@ -636,7 +636,7 @@ function HomeView({
             <button type="button" className={character === "boy" ? "is-active" : ""} onClick={() => setCharacter("boy")}>男孩</button>
             <button type="button" className={character === "girl" ? "is-active" : ""} onClick={() => setCharacter("girl")}>女孩</button>
           </div>
-          <div className="p1-character-sprite">
+          <div className="p1-character-sprite" data-character={character} data-avatar-slot="default-life-companion">
             <img
               src={`${assetBasePath}/assets/life-character-${character}-typing.png`}
               alt={character === "girl" ? "棕色长发、眼镜、猫耳和黑色穿搭的成年女性像素角色正在敲电脑" : "棕发蓝色上衣的成年男性像素角色正在敲电脑"}
