@@ -1965,10 +1965,6 @@ button.p1-die-trigger:disabled {
   image-rendering: pixelated;
 }
 
-.p1-character-sprite[data-character="girl"] img {
-  filter: sepia(0.4) saturate(1.1) hue-rotate(4deg) brightness(1.13);
-}
-
 .p1-typing-hands {
   position: absolute;
   top: 52.5%;
