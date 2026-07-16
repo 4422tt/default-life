@@ -206,12 +206,13 @@ export function DefaultLifeApp() {
         ) : (
           <>
             {view === "today" && flow === "home" && (
-              <HomeView
+              <LandingHomeView
                 options={options}
                 decisions={decisions}
                 imports={lifeImports}
                 onBegin={beginRecommendation}
                 onOpenDefaults={() => navigate("defaults")}
+                onOpenHistory={() => navigate("history")}
               />
             )}
             {view === "today" && flow === "context" && (
@@ -467,6 +468,279 @@ function LegacyHomeView({
         <p>生活不必每次从零开始。</p>
         <span>不是替你生活，只是替你减少重复消耗。</span>
       </section>
+    </div>
+  );
+}
+
+function LandingHomeView({
+  options,
+  decisions,
+  imports,
+  onBegin,
+  onOpenDefaults,
+  onOpenHistory,
+}: {
+  options: FoodOption[];
+  decisions: DecisionRecord[];
+  imports: LifeImportRecord[];
+  onBegin: () => void;
+  onOpenDefaults: () => void;
+  onOpenHistory: () => void;
+}) {
+  const [character, setCharacter] = useState<"girl" | "boy">("girl");
+  const [isPetPanelOpen, setIsPetPanelOpen] = useState(false);
+  const [demoMode, setDemoMode] = useState(false);
+  const [diceValue, setDiceValue] = useState(5);
+  const [dicePhase, setDicePhase] = useState<"idle" | "rolling" | "result" | "accepted">("idle");
+  const [homeResult, setHomeResult] = useState<RecommendationResult | null>(null);
+  const [shownIds, setShownIds] = useState<string[]>([]);
+  const [isSavingChoice, setIsSavingChoice] = useState(false);
+  const diceTimerRef = useRef<number | null>(null);
+
+  const personalOptions = options.filter((option) => option.active && !option.isSample);
+  const demoOptions = options.filter((option) => option.active && option.isSample);
+  const poolOptions = demoMode ? demoOptions : personalOptions;
+  const hasPool = poolOptions.length > 0;
+  const latestImport = [...imports].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+  const latestImportedCandidate = latestImport?.candidates[0];
+  const lastDecision = [...decisions].sort((a, b) => b.completedAt.localeCompare(a.completedAt))[0];
+  const currentContext: DecisionContext = demoMode
+    ? { ...defaultContext, budget: 2, energy: "normal", intent: "explore" }
+    : defaultContext;
+  const recentIds = useMemo(() => {
+    const threeDaysAgo = Date.now() - 3 * 86_400_000;
+    return decisions
+      .filter((record) => new Date(record.completedAt).getTime() >= threeDaysAgo)
+      .map((record) => record.selectedId);
+  }, [decisions]);
+  const selectedOption = homeResult?.primary.option;
+  const poolLabel = !hasPool
+    ? "还没有可用的默认池"
+    : `${demoMode ? "演示默认池" : "当前默认池"}：晚餐 · ${poolOptions.length} 个选项`;
+  const worldlineNumber = String(
+    worldlineHash(`${localDateKey()}-${selectedOption?.id ?? (demoMode ? "demo" : "empty")}`) % 1_000_000,
+  ).padStart(6, "0");
+  const assetBasePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
+  const activateDemo = () => {
+    setDemoMode(true);
+    setHomeResult(null);
+    setShownIds([]);
+    setDicePhase("idle");
+  };
+
+  const rollDice = (extraExclusions: string[] = []) => {
+    if (dicePhase === "rolling" || !hasPool) return;
+    const excludedIds = Array.from(new Set([...shownIds, ...extraExclusions]));
+    const nonRecentPool = poolOptions.filter((option) => !recentIds.includes(option.id));
+    const eligiblePool = nonRecentPool.length > 0 ? nonRecentPool : poolOptions;
+    const nextResult = recommend(eligiblePool, currentContext, { excludeIds: excludedIds })
+      ?? recommend(eligiblePool, currentContext);
+    if (!nextResult) return;
+
+    const nextValue = (worldlineHash(nextResult.primary.option.id) % 6) + 1;
+    setDicePhase("rolling");
+    if (diceTimerRef.current !== null) window.clearTimeout(diceTimerRef.current);
+    diceTimerRef.current = window.setTimeout(() => {
+      setDiceValue(nextValue);
+      setHomeResult(nextResult);
+      setShownIds(excludedIds);
+      setDicePhase("result");
+      diceTimerRef.current = null;
+    }, 1420);
+  };
+
+  const rerollDice = () => {
+    if (homeResult) rollDice([homeResult.primary.option.id]);
+  };
+
+  const acceptChoice = async () => {
+    if (!homeResult || isSavingChoice) return;
+    setIsSavingChoice(true);
+    try {
+      await saveDecision({
+        context: currentContext,
+        result: homeResult,
+        selected: homeResult.primary,
+        selectionMode: "recommended",
+        shownIds,
+      });
+      setDicePhase("accepted");
+    } finally {
+      setIsSavingChoice(false);
+    }
+  };
+
+  useEffect(() => () => {
+    if (diceTimerRef.current !== null) window.clearTimeout(diceTimerRef.current);
+  }, []);
+
+  return (
+    <div className="life-home">
+      <header className="life-nav">
+        <a className="life-brand" href="#top" aria-label="Default Life 首页">
+          <PixelDie compact animated={false} />
+          <span>Default Life</span>
+        </a>
+        <nav className="life-nav-links" aria-label="首页导航">
+          <a href="#how-it-works">功能介绍</a>
+          <a href="#scenarios">使用场景</a>
+          <a href="#about">关于我</a>
+          <button type="button" onClick={onOpenDefaults}>开始使用</button>
+        </nav>
+      </header>
+
+      <section className="life-hero" id="top" aria-labelledby="home-title">
+        <div className="life-copy">
+          <p className="life-kicker">PERSONAL LIFE OPERATING SYSTEM</p>
+          <h1 id="home-title"><span>预制人生</span><em>Default Life</em></h1>
+          <p className="life-question">今天不想再想什么？</p>
+          <div className="life-copy-blocks">
+            <p>先写下你的默认值，<br />让系统替你跳过重复选择。</p>
+            <p>它不会替你决定人生，<br />只会在你允许的范围内，<br />帮你减少不必要的消耗。</p>
+          </div>
+          <div className="life-actions">
+            <button className="life-button life-button-primary" type="button" onClick={onOpenDefaults}>
+              开始建立我的默认规则 <ArrowRight size={17} weight="bold" />
+            </button>
+            <button className="life-button life-button-secondary" type="button" onClick={activateDemo}>查看演示</button>
+          </div>
+        </div>
+
+        <div className="life-dice-column" aria-label="默认池抽取器">
+          <button
+            className="life-die-trigger"
+            type="button"
+            onClick={() => rollDice()}
+            disabled={!hasPool || dicePhase === "rolling"}
+            aria-label={hasPool ? "从默认池中掷骰抽取今天的选择" : "还没有可用的默认池"}
+            title={hasPool ? "只从当前默认池中选择" : "先建立默认池后再开始"}
+          >
+            <PixelDie
+              value={diceValue}
+              rolling={dicePhase === "rolling"}
+              resultVisible={dicePhase === "result" || dicePhase === "accepted"}
+            />
+          </button>
+          <p className="life-dice-status" aria-live="polite">
+            {dicePhase === "rolling"
+              ? "命运正在生成中…"
+              : dicePhase === "result" || dicePhase === "accepted"
+                ? `今日世界线 #${worldlineNumber} · 骰子结果 ${diceValue}`
+                : "只从你允许的选项中抽取"}
+          </p>
+          <span className="life-pool-status" data-demo={demoMode}>{poolLabel}</span>
+          <p className="life-boundary-note">随机发生在你的边界之内。</p>
+        </div>
+
+        <aside className="life-choice-card" data-state={dicePhase} aria-label="今日选择">
+          <header><span>今日选择</span><span aria-hidden="true">···</span></header>
+          {!hasPool ? (
+            <div className="life-choice-empty">
+              <strong>建立默认池后，<br />系统会从你允许的选项中替你抽取一个结果。</strong>
+              <p>不是替你决定人生，只替你跳过重复选择。</p>
+              <button className="life-card-button" type="button" onClick={activateDemo}>使用示例默认池</button>
+            </div>
+          ) : !selectedOption ? (
+            <div className="life-choice-empty">
+              {demoMode && <span className="life-demo-badge">演示数据</span>}
+              <strong>等待抽取</strong>
+              <p>默认池已准备好。点击中间骰子，从符合今天状态的选项中选择。</p>
+              <button className="life-card-button" type="button" onClick={() => rollDice()}>开始抽取</button>
+            </div>
+          ) : (
+            <div className="life-choice-result">
+              {demoMode && <span className="life-demo-badge">演示数据</span>}
+              <div className="life-choice-food"><FoodSprite name={selectedOption.name} size="lg" /></div>
+              <h2>{selectedOption.name}</h2>
+              <p>从「晚餐默认池」中选择</p>
+              <span className="life-choice-reason">符合：40 元以内 / 热食 / 已避开近期重复</span>
+              {dicePhase === "accepted" ? (
+                <>
+                  <footer><CheckCircle size={16} weight="fill" /> 已接受</footer>
+                  <p className="life-accepted-note">今天已经少做了一个重复决定。</p>
+                </>
+              ) : (
+                <div className="life-choice-actions">
+                  <button className="life-card-button" type="button" onClick={acceptChoice} disabled={isSavingChoice}>
+                    {isSavingChoice ? "正在记录…" : "接受这个选择"}
+                  </button>
+                  <div>
+                    <button type="button" onClick={rerollDice}>再掷一次</button>
+                    <button type="button" onClick={onOpenDefaults}>查看规则</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </aside>
+      </section>
+
+      <section className="life-system-section" id="scenarios" aria-labelledby="life-system-title">
+        <header className="life-system-heading">
+          <p>YOUR DEFAULT SYSTEM</p>
+          <h2 id="life-system-title">系统如何认识你的默认值</h2>
+          <span>每一次确认、拒绝和修改，都会让规则更接近你。</span>
+        </header>
+        <div className="life-dashboard" aria-label="生活系统概览">
+          <button className="life-mini-card" type="button" onClick={onOpenDefaults}>
+            <h2><Cards size={19} /> 我的默认池</h2>
+            <p>管理早餐、午餐、晚餐和其他重复选择。</p>
+            <div className="life-tags">
+              {["早餐", "午餐", "晚餐", "饮品", "购物", "娱乐", "出行", "…"].map((tag) => <span key={tag}>{tag}</span>)}
+            </div>
+          </button>
+          <button className="life-mini-card" type="button" onClick={onBegin}>
+            <h2><Smiley size={20} /> 今日状态</h2>
+            <p>用精力、时间和预算调整今天的筛选条件。</p>
+            <dl className="life-state-list">
+              <div><dt><Lightning size={16} weight="fill" /> 精力</dt><dd>中等</dd></div>
+              <div><dt><Wallet size={16} weight="fill" /> 预算</dt><dd>40 元以内</dd></div>
+              <div><dt><Sun size={16} weight="fill" /> 天气</dt><dd>晴天</dd></div>
+            </dl>
+          </button>
+          <button className="life-mini-card" type="button" onClick={onOpenHistory}>
+            <h2><ClockCounterClockwise size={19} /> 最近选择</h2>
+            <p>查看已经接受、拒绝和重新选择的记录。</p>
+            <div className="life-recent-choice">
+              <span>{lastDecision ? new Date(lastDecision.completedAt).toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" }) : latestImportedCandidate ? "刚刚导入" : "还没有记录"}</span>
+              <strong>{lastDecision ? `已接受：${lastDecision.selectedName}` : latestImportedCandidate ? `已记录：${latestImportedCandidate.name}${latestImportedCandidate.paidAmount ?? latestImportedCandidate.unitPrice ? ` · ¥${latestImportedCandidate.paidAmount ?? latestImportedCandidate.unitPrice}` : ""}` : "下一次接受会出现在这里"}</strong>
+            </div>
+            <div className="life-recent-secondary">{latestImport?.ruleDecision === "accepted" && latestImport.ruleSuggestion ? `新规则：${latestImport.ruleSuggestion.rule}` : "接受后会更新偏好和最近选择。"}</div>
+          </button>
+          <button className="life-mini-card" type="button" onClick={onOpenHistory}>
+            <h2><Compass size={19} /> 生活轨迹</h2>
+            <p>观察你的选择如何逐渐形成稳定偏好。</p>
+            <div className="life-trail" aria-label="近期选择变化趋势"><i /><i /><i /><i /><i /><i /></div>
+          </button>
+        </div>
+      </section>
+
+      <aside className="life-pet-dock" data-open={isPetPanelOpen} aria-label="生活角色">
+        {isPetPanelOpen && (
+          <div className="life-pet-popover" role="dialog" aria-label="选择生活角色">
+            <p>生活角色</p>
+            <div role="group" aria-label="选择角色">
+              <button type="button" className={character === "boy" ? "is-active" : ""} onClick={() => setCharacter("boy")}>男孩</button>
+              <button type="button" className={character === "girl" ? "is-active" : ""} onClick={() => setCharacter("girl")}>女孩</button>
+            </div>
+            <span>以后可以在这里换成你的 IP。</span>
+          </div>
+        )}
+        <button className="life-pet-trigger" type="button" onClick={() => setIsPetPanelOpen((open) => !open)} aria-expanded={isPetPanelOpen} aria-label="打开生活角色设置">
+          <span className="life-pet-sprite" data-character={character} data-avatar-slot="default-life-companion">
+            <img src={`${assetBasePath}/assets/life-character-${character}-typing.png`} alt="" />
+          </span>
+        </button>
+      </aside>
+
+      <section className="life-afterword" id="how-it-works">
+        <div><strong>设定默认池</strong><span>留下真正会反复选择的东西。</span></div>
+        <div><strong>描述今天状态</strong><span>预算、天气和精力就够了。</span></div>
+        <div><strong>保留最后决定权</strong><span>你可以接受、重掷，或回来修改规则。</span></div>
+      </section>
+
+      <footer className="life-about" id="about">你的选择，你的规则。不是替你决定人生，只是替你跳过那些不值得消耗注意力的小选择。</footer>
     </div>
   );
 }
