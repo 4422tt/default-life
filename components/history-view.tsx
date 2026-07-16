@@ -212,17 +212,24 @@ function DecisionTimelineCard({ entry }: { entry: Extract<TimelineEntry, { kind:
 }
 
 function ImportTimelineCard({ record }: { record: LifeImportRecord }) {
-  const totalChoices = record.candidates.reduce((sum, candidate) => sum + candidate.frequency, 0);
+  const totalChoices = record.candidates.reduce((sum, candidate) => sum + (candidate.historyCount ?? candidate.frequency), 0);
+  const summary = record.isDemo
+    ? `已记录 ${record.candidates.length} 笔示例订单，累计 ${totalChoices} 次选择。`
+    : `从 ${record.fileCount} 份截图中确认 ${record.candidates.length} 笔订单，累计 ${totalChoices} 次选择。`;
+  const ruleStatus = record.ruleDecision === "accepted" && record.ruleSuggestion
+    ? `已确认规则：${record.ruleSuggestion.rule}`
+    : "订单已保存，默认规则仍由你确认。";
   return (
     <>
       <p className="text-xs font-medium text-[var(--muted)]">{formatShortDate(record.createdAt)}</p>
       <div className="mt-2 flex flex-wrap items-start justify-between gap-2">
         <h2 className="text-xl font-semibold">导入了一段过去的生活</h2>
-        <span className="option-chip" data-accent="true">AI 整理</span>
+        <span className="option-chip" data-accent="true">{record.isDemo ? "示例订单" : "订单整理"}</span>
       </div>
-      <p className="mt-3 text-sm leading-6 text-[var(--muted)]">从 {record.fileCount} 份资料中整理出 {totalChoices} 次历史选择，形成 {record.candidates.length} 条默认规则。</p>
+      <p className="mt-3 text-sm leading-6 text-[var(--muted)]">{summary}</p>
+      <p className="mt-2 text-xs leading-5 text-[var(--muted)]">{ruleStatus}</p>
       <div className="mt-4 flex flex-wrap gap-2">
-        {record.candidates.map((candidate) => <span className="option-chip" key={candidate.id}>{candidate.name} {candidate.frequency} 次</span>)}
+        {record.candidates.map((candidate) => <span className="option-chip" key={candidate.id}>{candidate.name} {candidate.historyCount ?? candidate.frequency} 次</span>)}
       </div>
     </>
   );

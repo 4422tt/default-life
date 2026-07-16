@@ -61,6 +61,7 @@ import type {
   DecisionRecord,
   FeedbackValue,
   FoodOption,
+  LifeImportRecord,
   RankedOption,
   RecommendationResult,
   ThemePreference,
@@ -208,6 +209,7 @@ export function DefaultLifeApp() {
               <HomeView
                 options={options}
                 decisions={decisions}
+                imports={lifeImports}
                 onBegin={beginRecommendation}
                 onOpenDefaults={() => navigate("defaults")}
               />
@@ -237,7 +239,7 @@ export function DefaultLifeApp() {
               <DefaultsManager options={options} onImport={() => setDefaultsFlow("import")} />
             )}
             {view === "defaults" && defaultsFlow === "import" && (
-              <ImportLifeView latestImport={latestImport} onBack={() => setDefaultsFlow("pool")} />
+              <ImportLifeView latestImport={latestImport} existingOptions={options} onBack={() => setDefaultsFlow("pool")} />
             )}
             {view === "history" && <HistoryView decisions={decisions} imports={lifeImports} />}
             {view === "settings" && (
@@ -472,11 +474,13 @@ function LegacyHomeView({
 function HomeView({
   options,
   decisions,
+  imports,
   onBegin,
   onOpenDefaults,
 }: {
   options: FoodOption[];
   decisions: DecisionRecord[];
+  imports: LifeImportRecord[];
   onBegin: () => void;
   onOpenDefaults: () => void;
 }) {
@@ -488,6 +492,8 @@ function HomeView({
   const diceTimerRef = useRef<number | null>(null);
   const activeOptions = options.filter((option) => option.active);
   const lastDecision = [...decisions].sort((a, b) => b.completedAt.localeCompare(a.completedAt))[0];
+  const latestImport = [...imports].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+  const latestImportedCandidate = latestImport?.candidates[0];
   const canBegin = activeOptions.length > 0;
   const previewOption = activeOptions.find((option) => option.id === lastDecision?.selectedId) ?? activeOptions[0];
   const dailySeed = useMemo(() => worldlineHash(worldlineDay), [worldlineDay]);
@@ -621,10 +627,10 @@ function HomeView({
           <h2><ClockCounterClockwise size={19} /> 最近选择</h2>
           <p>过去的决定记录。</p>
           <div className="p1-recent-choice">
-            <span>{lastDecision ? new Date(lastDecision.completedAt).toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" }) : "今天"}</span>
-            <strong>{lastDecision ? `午餐 → ${previewOption?.name ?? "默认选择"}` : `午餐 → ${selectedOption?.name ?? "等待选择"}`}</strong>
+            <span>{latestImportedCandidate ? "刚刚导入" : lastDecision ? new Date(lastDecision.completedAt).toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" }) : "今天"}</span>
+            <strong>{latestImportedCandidate ? `已记录：${latestImportedCandidate.name}${latestImportedCandidate.paidAmount ?? latestImportedCandidate.unitPrice ? ` · ¥${latestImportedCandidate.paidAmount ?? latestImportedCandidate.unitPrice}` : ""}` : lastDecision ? `午餐 → ${previewOption?.name ?? "默认选择"}` : `午餐 → ${selectedOption?.name ?? "等待选择"}`}</strong>
           </div>
-          <div className="p1-recent-secondary">昨天　晚餐 → 番茄牛腩饭</div>
+          <div className="p1-recent-secondary">{latestImport?.ruleDecision === "accepted" && latestImport.ruleSuggestion ? `新规则：${latestImport.ruleSuggestion.rule}` : "昨天　晚餐 → 番茄牛腩饭"}</div>
         </article>
         <article className="p1-mini-card">
           <h2><Compass size={19} /> 生活轨迹</h2>

@@ -8,6 +8,8 @@ import type {
   DecisionRecord,
   FeedbackValue,
   FoodOption,
+  DefaultRuleDecision,
+  DefaultRuleSuggestion,
   LifeImportAnalysis,
   LifeImportCandidate,
   LifeImportRecord,
@@ -75,6 +77,8 @@ export async function commitLifeImport(args: {
   fileCount: number;
   analysis: LifeImportAnalysis;
   candidates: LifeImportCandidate[];
+  isDemo?: boolean;
+  ruleSuggestion?: DefaultRuleSuggestion;
 }) {
   const now = new Date().toISOString();
   const optionSource = args.source === "screenshots" ? "screenshot-import" : "manual";
@@ -85,10 +89,23 @@ export async function commitLifeImport(args: {
   await db.transaction("rw", db.options, db.imports, async () => {
     const existingOptions = await db.options.toArray();
 
+    const committedCandidates: LifeImportCandidate[] = [];
+
     for (const candidate of args.candidates) {
       const existing = existingOptions.find(
         (option) => normalizedOptionKey(option.name, option.merchantName) === normalizedOptionKey(candidate.name, candidate.merchantName),
       );
+      const increment = Math.max(1, candidate.importIncrement ?? candidate.frequency);
+      const merchantHistory = existingOptions
+        .filter((option) => normalizeOrderText(option.merchantName ?? "") === normalizeOrderText(candidate.merchantName ?? ""))
+        .reduce((sum, option) => sum + (option.historicalCount ?? option.choiceCount), 0);
+      const historyBefore = existing ? (existing.historicalCount ?? existing.choiceCount) : 0;
+      const committedCandidate: LifeImportCandidate = {
+        ...candidate,
+        historyCount: candidate.historyCount ?? historyBefore + increment,
+        merchantCount: candidate.merchantCount ?? merchantHistory + increment,
+        isRepeatOrder: candidate.isRepeatOrder ?? historyBefore > 0,
+      };
 
       if (existing) {
         await db.options.update(existing.id, {
@@ -103,15 +120,20 @@ export async function commitLifeImport(args: {
           companionTags: candidate.companionTags,
           active: true,
           isSample: false,
-          choiceCount: existing.choiceCount + candidate.frequency,
+          choiceCount: existing.choiceCount + increment,
           merchantName: candidate.merchantName ?? null,
-          historicalCount: (existing.historicalCount ?? existing.choiceCount) + candidate.frequency,
+          historicalCount: (existing.historicalCount ?? existing.choiceCount) + increment,
           price: candidate.paidAmount ?? candidate.unitPrice ?? existing.price ?? null,
           category: candidate.category ?? existing.category ?? null,
           source: optionSource,
           importedAt: now,
           updatedAt: now,
         });
+        Object.assign(existing, {
+          choiceCount: existing.choiceCount + increment,
+          historicalCount: (existing.historicalCount ?? existing.choiceCount) + increment,
+        });
+        committedCandidates.push(committedCandidate);
         updatedCount += 1;
         continue;
       }
@@ -130,10 +152,10 @@ export async function commitLifeImport(args: {
         companionTags: candidate.companionTags,
         active: true,
         craving: false,
-        choiceCount: candidate.frequency,
+        choiceCount: increment,
         preferenceDelta: 0,
         merchantName: candidate.merchantName ?? null,
-        historicalCount: candidate.frequency,
+        historicalCount: committedCandidate.historyCount,
         price: candidate.paidAmount ?? candidate.unitPrice ?? null,
         category: candidate.category ?? null,
         source: optionSource,
@@ -143,6 +165,7 @@ export async function commitLifeImport(args: {
       };
       await db.options.add(option);
       existingOptions.push(option);
+      committedCandidates.push(committedCandidate);
       addedCount += 1;
     }
 
@@ -150,16 +173,47 @@ export async function commitLifeImport(args: {
       id: createId("import"),
       source: args.source,
       fileCount: args.fileCount,
-      candidates: args.candidates,
+      candidates: committedCandidates,
       profile: args.analysis.profile,
       addedCount,
       updatedCount,
       createdAt: now,
+      isDemo: args.isDemo,
+      ruleSuggestion: args.ruleSuggestion,
+      ruleDecision: args.ruleSuggestion ? "pending" : undefined,
     };
     await db.imports.add(record);
   });
 
   return record;
+}
+
+export async function saveImportRuleDecision(recordId: string, decision: Exclude<DefaultRuleDecision, "pending">) {
+  let updated!: LifeImportRecord;
+  await db.transaction("rw", db.imports, db.options, async () => {
+    const record = await db.imports.get(recordId);
+    if (!record) throw new Error("导入记录不存在");
+
+    const next: LifeImportRecord = { ...record, ruleDecision: decision };
+    await db.imports.put(next);
+
+    if (decision === "accepted" && record.ruleSuggestion?.kind === "repeat-order") {
+      const candidate = record.candidates[0];
+      if (candidate) {
+        const option = (await db.options.toArray()).find((item) => (
+          normalizedOptionKey(item.name, item.merchantName) === normalizedOptionKey(candidate.name, candidate.merchantName)
+        ));
+        if (option) {
+          await db.options.update(option.id, {
+            preferenceDelta: Math.max(option.preferenceDelta, 1),
+            updatedAt: new Date().toISOString(),
+          });
+        }
+      }
+    }
+    updated = next;
+  });
+  return updated;
 }
 
 export async function saveDecision(args: {

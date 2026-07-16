@@ -101,6 +101,13 @@ export interface LifeImportCandidate {
   id: string;
   name: string;
   frequency: number;
+  /** The accumulated count after this import. It is calculated by the system, never user-entered. */
+  historyCount?: number;
+  /** The accumulated count for the merchant after this import. */
+  merchantCount?: number;
+  isRepeatOrder?: boolean;
+  /** The amount this import adds to the option. Legacy batch imports omit this and use frequency. */
+  importIncrement?: number;
   quantity?: number;
   merchantName?: string | null;
   unitPrice?: number | null;
@@ -137,6 +144,18 @@ export interface LifeImportAnalysis {
   totalOrders?: number;
 }
 
+export type DefaultRuleKind = "repeat-order" | "frequent-merchant" | "drink-pattern" | "budget-limit" | "learning";
+export type DefaultRuleDecision = "pending" | "accepted" | "dismissed";
+
+export interface DefaultRuleSuggestion {
+  id: string;
+  kind: DefaultRuleKind;
+  title: string;
+  explanation: string;
+  evidence: string;
+  rule: string;
+}
+
 export interface LifeImportRecord {
   id: string;
   source: LifeImportSource;
@@ -146,6 +165,9 @@ export interface LifeImportRecord {
   addedCount: number;
   updatedCount: number;
   createdAt: string;
+  isDemo?: boolean;
+  ruleSuggestion?: DefaultRuleSuggestion;
+  ruleDecision?: DefaultRuleDecision;
 }
 
 export interface BackupPayload {
