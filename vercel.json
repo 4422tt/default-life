@@ -1,7 +1,8 @@
 {
   "functions": {
     "api/orders/recognize.js": {
-      "maxDuration": 55
+      "maxDuration": 55,
+      "regions": ["hnd1"]
     }
   }
 }
