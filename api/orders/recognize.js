@@ -11,24 +11,19 @@ const DEFAULT_ALLOWED_ORIGINS = new Set([
   "http://127.0.0.1:3000",
 ]);
 
-const SYSTEM_INSTRUCTION = `你是一个订单截图识别助手。
+const ORDER_EXTRACTION_PROMPT = `请从这张中文外卖截图提取一笔订单的真实信息，并且只返回 JSON。
 
-你的任务是从外卖订单截图中提取结构化信息。
+截图可能是订单详情页，也可能是订单历史或列表页。优先提取最新或最显眼的一张订单卡片；请仔细读取其中可见的商家、菜品和金额文字。
 
-请只返回 JSON。
-不要返回 Markdown。
-不要解释。
-不要输出额外文字。
+规则：
+- merchantName 填截图中可见的店铺或餐厅名称。
+- items[0].dishName 填订单中的菜品、套餐或商品名称。
+- price 填该菜品金额；若菜品金额不清晰，填订单 totalPrice。
+- 只在单个字段确实看不清时填写 null；只要截图里能读到商家、食物或金额，不能把 merchantName、dishName 和价格全部留空。
+- 不要臆造内容；不要把 0 当作“未识别”的占位值。0 仅可用于明确显示为 0 的优惠或配送费。
+- category 只能是：快餐、正餐、轻食、饮品、甜点、夜宵、其他；不确定时为 null。
 
-需要识别：
-1. 商家名称 merchantName
-2. 菜品列表 items，每个菜品包含 dishName、quantity、price、category
-3. 订单信息 totalPrice、discount、deliveryFee、orderTime
-
-分类只能从：快餐、正餐、轻食、饮品、甜点、夜宵、其他。
-如果无法确定，返回 null。不要猜测。
-
-返回格式：
+严格返回以下 JSON，不要 Markdown、解释或其他文字：
 {
   "merchantName": null,
   "items": [{ "dishName": null, "quantity": null, "price": null, "category": null }],
@@ -104,6 +99,11 @@ function numberOrNull(value) {
   return Number.isFinite(number) ? Number(number.toFixed(2)) : null;
 }
 
+function positiveNumberOrNull(value) {
+  const number = numberOrNull(value);
+  return number && number > 0 ? number : null;
+}
+
 function stringOrNull(value) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
@@ -117,14 +117,14 @@ function parseQwenResponse(content) {
     const items = raw.items.map((item) => ({
       dishName: stringOrNull(item?.dishName),
       quantity: Number.isFinite(Number(item?.quantity)) && Number(item.quantity) > 0 ? Math.round(Number(item.quantity)) : null,
-      price: numberOrNull(item?.price),
+      price: positiveNumberOrNull(item?.price),
       category: ORDER_CATEGORIES.has(item?.category) ? item.category : null,
     }));
     const confidence = Number(raw.confidence);
     return {
       merchantName: stringOrNull(raw.merchantName),
       items,
-      totalPrice: numberOrNull(raw.totalPrice),
+      totalPrice: positiveNumberOrNull(raw.totalPrice),
       discount: numberOrNull(raw.discount),
       deliveryFee: numberOrNull(raw.deliveryFee),
       orderTime: stringOrNull(raw.orderTime),
@@ -151,19 +151,16 @@ async function recognizeWithQwen(image) {
       },
       body: JSON.stringify({
         model,
-        messages: [
-          { role: "system", content: SYSTEM_INSTRUCTION },
-          {
-            role: "user",
-            content: [
-              { type: "image_url", image_url: { url: imageUrl } },
-              { type: "text", text: "请从这张外卖订单截图提取订单信息。" },
-            ],
-          },
-        ],
+        messages: [{
+          role: "user",
+          content: [
+            { type: "image_url", image_url: { url: imageUrl } },
+            { type: "text", text: ORDER_EXTRACTION_PROMPT },
+          ],
+        }],
         response_format: { type: "json_object" },
         temperature: 0,
-        max_tokens: 700,
+        max_tokens: 900,
         // This flow extracts a few fields only; reasoning makes it slower
         // without making the structured result better.
         enable_thinking: false,
