@@ -37,6 +37,7 @@ import { HistoryView } from "@/components/history-view";
 import { ImportLifeView } from "@/components/import-life-view";
 import { LifeAssistantIp } from "@/components/life-assistant-ip";
 import { db, initializeDatabase } from "@/lib/db";
+import { formatDishDisplay } from "@/lib/dish-display";
 import {
   companionLabels,
   contextLabels,
@@ -213,6 +214,10 @@ export function DefaultLifeApp() {
                 imports={lifeImports}
                 onBegin={beginRecommendation}
                 onOpenDefaults={() => navigate("defaults")}
+                onOpenImport={() => {
+                  setView("defaults");
+                  setDefaultsFlow("import");
+                }}
                 onOpenHistory={() => navigate("history")}
               />
             )}
@@ -479,6 +484,7 @@ function LandingHomeView({
   imports,
   onBegin,
   onOpenDefaults,
+  onOpenImport,
   onOpenHistory,
 }: {
   options: FoodOption[];
@@ -486,6 +492,7 @@ function LandingHomeView({
   imports: LifeImportRecord[];
   onBegin: () => void;
   onOpenDefaults: () => void;
+  onOpenImport: () => void;
   onOpenHistory: () => void;
 }) {
   const [demoMode, setDemoMode] = useState(false);
@@ -513,12 +520,10 @@ function LandingHomeView({
       .map((record) => record.selectedId);
   }, [decisions]);
   const selectedOption = homeResult?.primary.option;
+  const dishDisplay = selectedOption ? formatDishDisplay(selectedOption.name) : null;
   const poolLabel = !hasPool
     ? "还没有可用的默认池"
     : `${demoMode ? "演示默认池" : "当前默认池"}：晚餐 · ${poolOptions.length} 个选项`;
-  const worldlineNumber = String(
-    worldlineHash(`${localDateKey()}-${selectedOption?.id ?? (demoMode ? "demo" : "empty")}`) % 1_000_000,
-  ).padStart(6, "0");
   const assetBasePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
   const activateDemo = () => {
@@ -599,8 +604,8 @@ function LandingHomeView({
             <p>它不会替你决定人生，<br />只会在你允许的范围内，<br />帮你减少不必要的消耗。</p>
           </div>
           <div className="life-actions">
-            <button className="life-button life-button-primary" type="button" onClick={onOpenDefaults}>
-              开始建立我的默认规则 <ArrowRight size={17} weight="bold" />
+            <button className="life-button life-button-primary" type="button" onClick={onOpenDefaults} title="从你的历史选择开始">
+              建立默认规则 <ArrowRight size={17} weight="bold" />
             </button>
             <button className="life-button life-button-secondary" type="button" onClick={activateDemo}>查看演示</button>
           </div>
@@ -625,7 +630,7 @@ function LandingHomeView({
             {dicePhase === "rolling"
               ? "命运正在生成中…"
               : dicePhase === "result" || dicePhase === "accepted"
-                ? `今日世界线 #${worldlineNumber} · 骰子结果 ${diceValue}`
+                ? `今日世界线 · 结果 ${diceValue}`
                 : "只从你允许的选项中抽取"}
           </p>
           <span className="life-pool-status" data-demo={demoMode}>{poolLabel}</span>
@@ -651,7 +656,12 @@ function LandingHomeView({
             <div className="life-choice-result">
               {demoMode && <span className="life-demo-badge">演示数据</span>}
               <div className="life-choice-food"><FoodSprite name={selectedOption.name} size="lg" /></div>
-              <h2>{selectedOption.name}</h2>
+              <h2 title={dishDisplay?.rawDishName}>{dishDisplay?.displayDishName}</h2>
+              {dishDisplay && dishDisplay.displayTags.length > 0 && (
+                <div className="life-choice-tags" aria-label="菜品标签">
+                  {dishDisplay.displayTags.map((tag) => <span key={tag}>{tag}</span>)}
+                </div>
+              )}
               <p>从「晚餐默认池」中选择</p>
               <span className="life-choice-reason">符合：40 元以内 / 热食 / 已避开近期重复</span>
               {dicePhase === "accepted" ? (
@@ -665,8 +675,8 @@ function LandingHomeView({
                     {isSavingChoice ? "正在记录…" : "接受这个选择"}
                   </button>
                   <div>
-                    <button type="button" onClick={rerollDice}>再掷一次</button>
-                    <button type="button" onClick={onOpenDefaults}>查看规则</button>
+                    <button className="life-reroll-button" type="button" onClick={rerollDice}><ArrowCounterClockwise size={14} /> 再掷一次</button>
+                    <button className="life-rule-link" type="button" onClick={onOpenDefaults}>查看规则</button>
                   </div>
                 </div>
               )}
@@ -715,7 +725,12 @@ function LandingHomeView({
         </div>
       </section>
 
-      <LifeAssistantIp assetBasePath={assetBasePath} />
+      <LifeAssistantIp
+        assetBasePath={assetBasePath}
+        onOpenDefaults={onOpenDefaults}
+        onUpdateToday={onBegin}
+        onUseExampleOrder={onOpenImport}
+      />
 
       <section className="life-afterword" id="how-it-works">
         <div><strong>设定默认池</strong><span>留下真正会反复选择的东西。</span></div>
