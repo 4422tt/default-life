@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { createPortal } from "react-dom";
 import {
   ArrowLeft,
   ArrowRight,
@@ -338,9 +339,23 @@ function ConfirmationSheet({ draft, preview, fieldErrors, error, saving, onBack,
   onChange: (patch: Partial<OrderDraft>) => void;
   onConfirm: () => void;
 }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-end bg-black/15 md:items-center md:justify-center md:p-8">
-      <section className="app-surface-raised max-h-[92dvh] w-full overflow-y-auto rounded-b-none rounded-t-[20px] p-5 md:max-w-2xl md:rounded-[18px] md:p-7" role="dialog" aria-modal="true" aria-labelledby="order-confirm-title">
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    const previousPaddingRight = document.body.style.paddingRight;
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+
+    document.body.style.overflow = "hidden";
+    if (scrollbarWidth > 0) document.body.style.paddingRight = `${scrollbarWidth}px`;
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.body.style.paddingRight = previousPaddingRight;
+    };
+  }, []);
+
+  const dialog = (
+    <div className="order-confirm-overlay">
+      <section className="app-surface-raised order-confirm-sheet" role="dialog" aria-modal="true" aria-labelledby="order-confirm-title">
         <div className="flex items-start justify-between gap-5">
           <div>
             <div className="flex flex-wrap items-center gap-2">
@@ -375,6 +390,10 @@ function ConfirmationSheet({ draft, preview, fieldErrors, error, saving, onBack,
       </section>
     </div>
   );
+
+  if (typeof document === "undefined") return dialog;
+
+  return createPortal(dialog, document.body);
 }
 
 function FormField({ id, label, placeholder, value, error, type = "text", onChange }: { id: string; label: string; placeholder: string; value: string; error?: string; type?: "text" | "number"; onChange: (value: string) => void }) {

@@ -488,7 +488,6 @@ function LandingHomeView({
   onOpenHistory: () => void;
 }) {
   const [character, setCharacter] = useState<"girl" | "boy">("girl");
-  const [isPetPanelOpen, setIsPetPanelOpen] = useState(false);
   const [demoMode, setDemoMode] = useState(false);
   const [diceValue, setDiceValue] = useState(5);
   const [dicePhase, setDicePhase] = useState<"idle" | "rolling" | "result" | "accepted">("idle");
@@ -716,22 +715,16 @@ function LandingHomeView({
         </div>
       </section>
 
-      <aside className="life-pet-dock" data-open={isPetPanelOpen} aria-label="生活角色">
-        {isPetPanelOpen && (
-          <div className="life-pet-popover" role="dialog" aria-label="选择生活角色">
-            <p>生活角色</p>
-            <div role="group" aria-label="选择角色">
-              <button type="button" className={character === "boy" ? "is-active" : ""} onClick={() => setCharacter("boy")}>男孩</button>
-              <button type="button" className={character === "girl" ? "is-active" : ""} onClick={() => setCharacter("girl")}>女孩</button>
-            </div>
-            <span>以后可以在这里换成你的 IP。</span>
-          </div>
-        )}
-        <button className="life-pet-trigger" type="button" onClick={() => setIsPetPanelOpen((open) => !open)} aria-expanded={isPetPanelOpen} aria-label="打开生活角色设置">
-          <span className="life-pet-sprite" data-character={character} data-avatar-slot="default-life-companion">
-            <img src={`${assetBasePath}/assets/life-character-${character}-typing.png`} alt="" />
+      <aside className="life-pet-dock" aria-label="生活角色">
+        <div className="life-pet-switch" role="group" aria-label="选择角色">
+          <button type="button" className={character === "boy" ? "is-active" : ""} onClick={() => setCharacter("boy")}>男孩</button>
+          <button type="button" className={character === "girl" ? "is-active" : ""} onClick={() => setCharacter("girl")}>女孩</button>
+        </div>
+        <div className="life-pet-stage" data-avatar-slot="default-life-companion">
+          <span className="life-pet-sprite" data-character={character}>
+            <img src={`${assetBasePath}/assets/life-character-${character === "girl" ? "girl-typing-light" : "boy-typing"}.png`} alt={character === "girl" ? "正在使用电脑的女孩像素角色" : "正在使用电脑的男孩像素角色"} />
           </span>
-        </button>
+        </div>
       </aside>
 
       <section className="life-afterword" id="how-it-works">
