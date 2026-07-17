@@ -154,7 +154,14 @@ async function recognizeWithGemini(image) {
         generationConfig: { response_mime_type: "application/json", temperature: 0 },
       }),
     });
-    if (!response.ok) return null;
+    if (!response.ok) {
+      const detail = await response.text();
+      console.error("[Gemini order recognition] Provider request failed", {
+        status: response.status,
+        detail: detail.slice(0, 1000),
+      });
+      return null;
+    }
     const payload = await response.json();
     const text = payload.candidates?.[0]?.content?.parts?.find((part) => typeof part.text === "string")?.text;
     return parseGeminiResponse(text);
@@ -183,7 +190,11 @@ const handler = async function handler(req, res) {
     const recognized = await recognizeWithGemini(image);
     if (!recognized) return reply(res, 502, { error: "自动识别暂时不可用，请确认订单信息。" }, origin);
     return reply(res, 200, recognized, origin);
-  } catch {
+  } catch (error) {
+    console.error("[Gemini order recognition] Provider request threw", {
+      name: error?.name,
+      message: error?.message,
+    });
     return reply(res, 502, { error: "自动识别暂时不可用，请确认订单信息。" }, origin);
   }
 };

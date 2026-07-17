@@ -104,12 +104,23 @@ export default async function handler(request: Request) {
       }),
     });
     clearTimeout(timer);
-    if (!response.ok) return json({ error: "自动识别暂时不可用，请确认订单信息。" }, 502, origin);
+    if (!response.ok) {
+      const detail = await response.text();
+      console.error("[Gemini order recognition] Provider request failed", {
+        status: response.status,
+        detail: detail.slice(0, 1000),
+      });
+      return json({ error: "自动识别暂时不可用，请确认订单信息。" }, 502, origin);
+    }
     const payload = await response.json();
     const text = payload.candidates?.[0]?.content?.parts?.find((part: { text?: unknown }) => typeof part.text === "string")?.text;
     const recognized = normalize(text);
     return recognized ? json(recognized, 200, origin) : json({ error: "自动识别暂时不可用，请确认订单信息。" }, 502, origin);
-  } catch {
+  } catch (error) {
+    console.error("[Gemini order recognition] Provider request threw", {
+      name: error instanceof Error ? error.name : "UnknownError",
+      message: error instanceof Error ? error.message : "Unknown error",
+    });
     return json({ error: "自动识别暂时不可用，请确认订单信息。" }, 502, origin);
   }
 }
