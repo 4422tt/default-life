@@ -35,6 +35,7 @@ import { DefaultsManager } from "@/components/defaults-manager";
 import { FoodSprite, PixelDie } from "@/components/game-visuals";
 import { HistoryView } from "@/components/history-view";
 import { ImportLifeView } from "@/components/import-life-view";
+import { LifeAssistantIp } from "@/components/life-assistant-ip";
 import { db, initializeDatabase } from "@/lib/db";
 import {
   companionLabels,
@@ -487,7 +488,6 @@ function LandingHomeView({
   onOpenDefaults: () => void;
   onOpenHistory: () => void;
 }) {
-  const [character, setCharacter] = useState<"girl" | "boy">("girl");
   const [demoMode, setDemoMode] = useState(false);
   const [diceValue, setDiceValue] = useState(5);
   const [dicePhase, setDicePhase] = useState<"idle" | "rolling" | "result" | "accepted">("idle");
@@ -715,17 +715,7 @@ function LandingHomeView({
         </div>
       </section>
 
-      <aside className="life-pet-dock" aria-label="生活角色">
-        <div className="life-pet-switch" role="group" aria-label="选择角色">
-          <button type="button" className={character === "boy" ? "is-active" : ""} onClick={() => setCharacter("boy")}>男孩</button>
-          <button type="button" className={character === "girl" ? "is-active" : ""} onClick={() => setCharacter("girl")}>女孩</button>
-        </div>
-        <div className="life-pet-stage" data-avatar-slot="default-life-companion">
-          <span className="life-pet-sprite" data-character={character}>
-            <img src={`${assetBasePath}/assets/life-character-${character === "girl" ? "girl-typing-light" : "boy-typing"}.png`} alt={character === "girl" ? "正在使用电脑的女孩像素角色" : "正在使用电脑的男孩像素角色"} />
-          </span>
-        </div>
-      </aside>
+      <LifeAssistantIp assetBasePath={assetBasePath} />
 
       <section className="life-afterword" id="how-it-works">
         <div><strong>设定默认池</strong><span>留下真正会反复选择的东西。</span></div>
