@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/orders/recognize.js": {
+      "maxDuration": 55
+    }
+  }
+}

@@ -1,6 +1,10 @@
 const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const ORDER_CATEGORIES = new Set(["快餐", "正餐", "轻食", "饮品", "甜点", "夜宵", "其他"]);
 const MAX_IMAGE_SIZE = 3 * 1024 * 1024;
+// Visual models can take longer than a text completion on a cold start. Keep
+// this below Vercel Hobby's 60s function ceiling while allowing a real order
+// screenshot enough time to be processed.
+const QWEN_REQUEST_TIMEOUT_MS = 50_000;
 const DEFAULT_ALLOWED_ORIGINS = new Set([
   "https://4422tt.github.io",
   "http://localhost:3000",
@@ -133,7 +137,7 @@ function parseQwenResponse(content) {
 
 async function recognizeWithQwen(image) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 20_000);
+  const timeout = setTimeout(() => controller.abort(), QWEN_REQUEST_TIMEOUT_MS);
   try {
     const model = process.env.DASHSCOPE_VISION_MODEL || "qwen3.6-flash";
     const endpoint = process.env.DASHSCOPE_BASE_URL || "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions";
@@ -159,6 +163,10 @@ async function recognizeWithQwen(image) {
         ],
         response_format: { type: "json_object" },
         temperature: 0,
+        max_tokens: 700,
+        // This flow extracts a few fields only; reasoning makes it slower
+        // without making the structured result better.
+        enable_thinking: false,
       }),
     });
     if (!response.ok) {

@@ -1,6 +1,7 @@
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const CATEGORIES = new Set(["快餐", "正餐", "轻食", "饮品", "甜点", "夜宵", "其他"]);
 const MAX_IMAGE_SIZE = 3 * 1024 * 1024;
+const QWEN_REQUEST_TIMEOUT_MS = 50_000;
 
 const instruction = `你是一个订单截图识别助手。
 你的任务是从外卖订单截图中提取结构化信息。
@@ -92,7 +93,7 @@ export default async function handler(request: Request) {
 
     const imageData = Buffer.from(await image.arrayBuffer()).toString("base64");
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 20_000);
+    const timer = setTimeout(() => controller.abort(), QWEN_REQUEST_TIMEOUT_MS);
     const model = process.env.DASHSCOPE_VISION_MODEL || "qwen3.6-flash";
     const endpoint = process.env.DASHSCOPE_BASE_URL || "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions";
     const response = await fetch(endpoint, {
@@ -113,6 +114,8 @@ export default async function handler(request: Request) {
         ],
         response_format: { type: "json_object" },
         temperature: 0,
+        max_tokens: 700,
+        enable_thinking: false,
       }),
     });
     clearTimeout(timer);
