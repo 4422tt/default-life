@@ -15,6 +15,7 @@ import {
   X,
 } from "@phosphor-icons/react";
 import { FoodSprite } from "@/components/game-visuals";
+import { recognizeOrderScreenshot, type GeminiOrderRecognition } from "@/lib/gemini-order-recognition";
 import {
   calculateOrderHistory,
   createLocalImportAnalysis,
@@ -35,7 +36,7 @@ interface ImportLifeViewProps {
   onBack: () => void;
 }
 
-const processingSteps = ["正在读取截图", "正在整理订单信息", "正在匹配历史记录"];
+const processingSteps = ["正在读取订单...", "正在分析截图", "正在整理菜品信息"];
 const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 const emptyDraft: OrderDraft = { merchantName: "", dishName: "", price: "", category: "", isDemo: false };
 
@@ -50,8 +51,10 @@ export function ImportLifeView({ latestImport, existingOptions, onBack }: Import
   const [saving, setSaving] = useState(false);
   const [completedImport, setCompletedImport] = useState<LifeImportRecord>();
   const [ruleSuggestion, setRuleSuggestion] = useState<DefaultRuleSuggestion>();
+  const [recognitionNotice, setRecognitionNotice] = useState("");
   const screenshotInputRef = useRef<HTMLInputElement>(null);
   const processingTimers = useRef<number[]>([]);
+  const recognitionRunRef = useRef(0);
 
   const previews = useMemo(
     () => files.map((file) => ({ file, url: URL.createObjectURL(file) })),
@@ -95,6 +98,7 @@ export function ImportLifeView({ latestImport, existingOptions, onBack }: Import
   const startProcessing = (nextDraft: OrderDraft) => {
     clearProcessing();
     setError("");
+    setRecognitionNotice("");
     setFieldErrors({});
     setDraft(nextDraft);
     setProcessingStep(0);
@@ -109,12 +113,55 @@ export function ImportLifeView({ latestImport, existingOptions, onBack }: Import
     ];
   };
 
-  const beginUpload = () => {
+  const recognizedDraft = (recognition: GeminiOrderRecognition): OrderDraft => {
+    const primaryItem = recognition.items.find((item) => item.dishName) ?? recognition.items[0];
+    return {
+      merchantName: recognition.merchantName ?? "",
+      dishName: primaryItem?.dishName ?? "",
+      price: primaryItem?.price?.toString() ?? recognition.totalPrice?.toString() ?? "",
+      category: primaryItem?.category ?? "",
+      isDemo: false,
+    };
+  };
+
+  const beginUpload = async () => {
     if (files.length === 0) {
       setError("请先上传至少一张订单截图。也可以使用下方示例订单。 ");
       return;
     }
-    startProcessing({ ...emptyDraft, isDemo: false });
+
+    clearProcessing();
+    const runId = ++recognitionRunRef.current;
+    setError("");
+    setRecognitionNotice("");
+    setFieldErrors({});
+    setDraft({ ...emptyDraft, isDemo: false });
+    setProcessingStep(0);
+    setPhase("processing");
+    processingTimers.current = [
+      window.setTimeout(() => setProcessingStep(1), 1000),
+      window.setTimeout(() => setProcessingStep(2), 2000),
+    ];
+
+    const [recognition] = await Promise.all([
+      recognizeOrderScreenshot(files[0])
+        .then((result) => ({ result }))
+        .catch(() => ({ error: "自动识别暂时不可用，请确认订单信息。" })),
+      new Promise<void>((resolve) => window.setTimeout(resolve, 2200)),
+    ]);
+
+    if (runId !== recognitionRunRef.current) return;
+    clearProcessing();
+    if ("result" in recognition) {
+      const nextDraft = recognizedDraft(recognition.result);
+      const incomplete = !nextDraft.merchantName || !nextDraft.dishName || !nextDraft.price || !nextDraft.category;
+      setDraft(nextDraft);
+      setRecognitionNotice(incomplete ? "部分信息未识别，请补充。" : "识别结果已填入；你仍可以修改所有字段。");
+    } else {
+      setDraft({ ...emptyDraft, isDemo: false });
+      setRecognitionNotice(recognition.error);
+    }
+    setPhase("confirm");
   };
 
   const beginDemo = () => {
@@ -189,11 +236,13 @@ export function ImportLifeView({ latestImport, existingOptions, onBack }: Import
   };
 
   const resetImport = () => {
+    recognitionRunRef.current += 1;
     clearProcessing();
     setFiles([]);
     setDraft(emptyDraft);
     setFieldErrors({});
     setError("");
+    setRecognitionNotice("");
     setCompletedImport(undefined);
     setRuleSuggestion(undefined);
     setPhase("hub");
@@ -225,11 +274,12 @@ export function ImportLifeView({ latestImport, existingOptions, onBack }: Import
           onContinue={beginUpload}
         />
       )}
-      {phase === "processing" && <ProcessingView fileCount={draft.isDemo ? 0 : files.length} currentStep={processingStep} onCancel={() => { clearProcessing(); setPhase("upload"); }} />}
+      {phase === "processing" && <ProcessingView fileCount={draft.isDemo ? 0 : files.length} isDemo={draft.isDemo} currentStep={processingStep} onCancel={() => { recognitionRunRef.current += 1; clearProcessing(); setPhase("upload"); }} />}
       {phase === "confirm" && (
         <ConfirmationSheet
           draft={draft}
           preview={previews[0]?.url}
+          recognitionNotice={recognitionNotice}
           fieldErrors={fieldErrors}
           error={error}
           saving={saving}
@@ -272,7 +322,7 @@ function ImportHub({ latestImport, onBack, onOpenUpload, onOpenProfile }: {
         <article className="app-surface-raised relative overflow-hidden p-6 md:col-span-7 md:p-8">
           <div className="grid h-14 w-14 place-items-center rounded-[16px] bg-[var(--accent)] text-[var(--accent-ink)]"><ImageSquare size={28} weight="fill" /></div>
           <h2 className="mt-8 text-2xl font-semibold tracking-[-0.03em] md:text-3xl">导入外卖截图</h2>
-          <p className="mt-3 max-w-md text-sm leading-6 text-[var(--muted)] md:text-base">上传后会先进入订单确认。当前演示版本不会读取图中文字，也不会生成虚构订单。</p>
+          <p className="mt-3 max-w-md text-sm leading-6 text-[var(--muted)] md:text-base">上传后会先整理截图中的订单信息，再由你确认；无法识别的字段不会猜测。</p>
           <button className="app-button app-button-primary mt-8" onClick={onOpenUpload}>开始导入 <ArrowRight size={18} weight="bold" /></button>
         </article>
         <article className="app-surface p-6 md:col-span-5">
@@ -325,13 +375,14 @@ function UploadView({ previews, error, inputRef, selectedDemoId, onBack, onFiles
   );
 }
 
-function ProcessingView({ fileCount, currentStep, onCancel }: { fileCount: number; currentStep: number; onCancel: () => void }) {
-  return <div className="mx-auto grid min-h-[calc(100dvh-8rem)] max-w-3xl place-items-center py-8"><div className="app-surface-raised analysis-panel w-full p-6 md:p-10" aria-live="polite"><div className="flex items-start gap-4"><div className="analysis-pulse grid h-14 w-14 shrink-0 place-items-center rounded-[16px] bg-[var(--accent)] text-[var(--accent-ink)]"><FileImage size={28} weight="fill" /></div><div><p className="text-sm font-semibold text-[var(--accent-strong)]">正在整理订单</p><h1 className="mt-2 text-2xl font-semibold tracking-[-0.03em] md:text-4xl">{fileCount > 0 ? `准备确认 ${fileCount} 张截图` : "准备示例订单"}</h1></div></div><p className="mt-5 text-sm leading-6 text-[var(--muted)]">当前演示版本会根据订单信息建立你的默认规则。</p><div className="mt-8 space-y-3">{processingSteps.map((title, index) => { const state = index < currentStep ? "complete" : index === currentStep ? "active" : "pending"; return <div className="analysis-step" data-state={state} key={title}><div className="grid h-9 w-9 shrink-0 place-items-center rounded-[11px] bg-[var(--surface-soft)]">{state === "complete" ? <Check size={17} weight="bold" /> : <span className="text-sm font-semibold tabular-nums">{index + 1}</span>}</div><p className="text-sm font-semibold">{title}</p></div>; })}</div><button className="app-button app-button-quiet mt-7 text-sm" onClick={onCancel}>取消</button></div></div>;
+function ProcessingView({ fileCount, isDemo, currentStep, onCancel }: { fileCount: number; isDemo: boolean; currentStep: number; onCancel: () => void }) {
+  return <div className="mx-auto grid min-h-[calc(100dvh-8rem)] max-w-3xl place-items-center py-8"><div className="app-surface-raised analysis-panel w-full p-6 md:p-10" aria-live="polite"><div className="flex items-start gap-4"><div className="analysis-pulse grid h-14 w-14 shrink-0 place-items-center rounded-[16px] bg-[var(--accent)] text-[var(--accent-ink)]"><FileImage size={28} weight="fill" /></div><div><p className="text-sm font-semibold text-[var(--accent-strong)]">正在整理订单</p><h1 className="mt-2 text-2xl font-semibold tracking-[-0.03em] md:text-4xl">{fileCount > 0 ? `准备确认 ${fileCount} 张截图` : "准备示例订单"}</h1></div></div><p className="mt-5 text-sm leading-6 text-[var(--muted)]">{isDemo ? "示例订单仅用于演示，确认后仍会按相同方式建立规则。" : "识别完成后，你可以继续修改所有订单字段。"}</p><div className="mt-8 space-y-3">{processingSteps.map((title, index) => { const state = index < currentStep ? "complete" : index === currentStep ? "active" : "pending"; return <div className="analysis-step" data-state={state} key={title}><div className="grid h-9 w-9 shrink-0 place-items-center rounded-[11px] bg-[var(--surface-soft)]">{state === "complete" ? <Check size={17} weight="bold" /> : <span className="text-sm font-semibold tabular-nums">{index + 1}</span>}</div><p className="text-sm font-semibold">{title}</p></div>; })}</div><button className="app-button app-button-quiet mt-7 text-sm" onClick={onCancel}>取消</button></div></div>;
 }
 
-function ConfirmationSheet({ draft, preview, fieldErrors, error, saving, onBack, onChange, onConfirm }: {
+function ConfirmationSheet({ draft, preview, recognitionNotice, fieldErrors, error, saving, onBack, onChange, onConfirm }: {
   draft: OrderDraft;
   preview?: string;
+  recognitionNotice: string;
   fieldErrors: Record<string, string>;
   error: string;
   saving: boolean;
@@ -359,10 +410,10 @@ function ConfirmationSheet({ draft, preview, fieldErrors, error, saving, onBack,
         <div className="flex items-start justify-between gap-5">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h1 id="order-confirm-title" className="text-2xl font-semibold tracking-[-0.03em]">确认订单信息</h1>
+              <h1 id="order-confirm-title" className="text-2xl font-semibold tracking-[-0.03em]">{draft.isDemo ? "确认订单信息" : "AI 识别结果确认"}</h1>
               {draft.isDemo && <span className="option-chip" data-accent="true">示例订单</span>}
             </div>
-            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">补充必要信息后，系统会自动匹配你的历史选择。</p>
+            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{draft.isDemo ? "补充必要信息后，系统会自动匹配你的历史选择。" : "请确认订单信息；未识别的字段可以补充。"}</p>
           </div>
           <button className="app-icon-button shrink-0" aria-label="返回上传" onClick={onBack}><X size={17} /></button>
         </div>
@@ -382,6 +433,7 @@ function ConfirmationSheet({ draft, preview, fieldErrors, error, saving, onBack,
             </div>
           </div>
         </div>
+        {recognitionNotice && <p className="mt-4 rounded-[10px] bg-[var(--accent-soft)] p-3 text-sm text-[var(--accent-strong)]" role="status">{recognitionNotice}</p>}
         {error && <p className="mt-4 rounded-[10px] bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]" role="alert">{error}</p>}
         <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
           <button className="app-button app-button-secondary" disabled={saving} onClick={onBack}>取消</button>

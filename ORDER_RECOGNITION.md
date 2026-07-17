@@ -1,4 +1,25 @@
-# Default Life 导入服务：GitHub Pages + Vercel + DeepSeek
+# Default Life 导入服务：GitHub Pages + Vercel + Gemini + DeepSeek
+
+## 订单截图识别（Gemini Vision）
+
+截图识别由 Gemini 在 Vercel 服务端执行；浏览器仅把图片发往 Vercel，`GEMINI_API_KEY` 不会进入 GitHub Pages 的构建产物或浏览器请求。
+
+```text
+GitHub Pages 前端 → Vercel /api/orders/recognize → Gemini Vision
+                       GEMINI_API_KEY（仅服务端）
+```
+
+接口为 `POST /api/orders/recognize`。请求使用 `multipart/form-data`，图片字段名是 `image`，支持 JPG、PNG、WEBP，单张最大 3MB。接口返回 `merchantName`、`items`、`totalPrice`、`discount`、`deliveryFee`、`orderTime` 与 `confidence` 的 JSON；无法确认的字段会返回 `null`，不会猜测。
+
+Gemini 只负责看懂截图。历史次数、默认规则和用户确认仍由 Default Life 的本地规则逻辑处理；识别不可用时，前端会自动进入可编辑确认卡片，并提示“自动识别暂时不可用，请确认订单信息。”
+
+在 Vercel 的 **Settings → Environment Variables** 中添加 `GEMINI_API_KEY`（Production 和 Preview），可选添加 `GEMINI_MODEL=gemini-2.5-flash`。GitHub Pages 构建时，将公开端点设置为：
+
+```text
+NEXT_PUBLIC_ORDER_RECOGNITION_ENDPOINT=https://your-project.vercel.app/api/orders/recognize
+```
+
+不要把 `GEMINI_API_KEY` 写到 `.env.local`、GitHub 变量或任何 `NEXT_PUBLIC_` 环境变量中。
 
 GitHub Pages 只托管静态前端，不能保存模型密钥。Default Life 将“生活规则分析”部署为独立 Vercel Function：浏览器只请求公开接口，Vercel 再使用仅存在于服务器环境变量中的 `DEEPSEEK_API_KEY` 调用 DeepSeek。
 
@@ -48,6 +69,8 @@ Function 文件：`vercel-api/api/recognize-order.ts`
 DeepSeek 的此服务仅用于文字理解，不会将图片直接发送给模型。截图仍可上传和预览；点击继续后，界面会打开“补充订单名称”，提示“请输入订单名称，我会帮你建立默认规则”。用户填写真实订单名称后，才会调用上面的 DeepSeek 文本接口。
 
 这个流程不会生成演示菜品、不会伪造 OCR 结果，也不会在失败时修改默认池。未来接入 OCR 时，只需让 OCR 将图片转成文字，再把文字发往 `action: "life-rule"`。
+
+> 更新说明：上述 Gemini 截图接口已替代旧的“上传后手动补充订单名称”说明。Gemini 仅做截图结构化提取；若未配置、超时或返回无法校验，前端会进入“AI 识别结果确认”卡片，保留空字段供用户补充，不会伪造订单或修改默认池。
 
 ## 部署到 Vercel
 

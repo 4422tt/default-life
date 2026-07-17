@@ -2,6 +2,9 @@
   "functions": {
     "api/recognize-order.ts": {
       "maxDuration": 30
+    },
+    "api/orders/recognize.ts": {
+      "maxDuration": 30
     }
   }
 }
