@@ -104,7 +104,7 @@ function stringOrNull(value) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
-function parseGeminiResponse(content) {
+function parseQwenResponse(content) {
   if (typeof content !== "string") return null;
   const jsonText = content.trim().replace(/^```json\s*/i, "").replace(/```$/, "").trim();
   try {
@@ -131,40 +131,47 @@ function parseGeminiResponse(content) {
   }
 }
 
-async function recognizeWithGemini(image) {
+async function recognizeWithQwen(image) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 20_000);
   try {
-    const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+    const model = process.env.DASHSCOPE_VISION_MODEL || "qwen3.6-flash";
+    const endpoint = process.env.DASHSCOPE_BASE_URL || "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions";
+    const imageUrl = `data:${image.mimeType};base64,${image.bytes.toString("base64")}`;
+    const response = await fetch(endpoint, {
       method: "POST",
       signal: controller.signal,
       headers: {
-        "x-goog-api-key": process.env.GEMINI_API_KEY,
+        Authorization: `Bearer ${process.env.DASHSCOPE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        system_instruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
-        contents: [{
-          parts: [
-            { inline_data: { mime_type: image.mimeType, data: image.bytes.toString("base64") } },
-            { text: "请从这张外卖订单截图提取订单信息。" },
-          ],
-        }],
-        generationConfig: { response_mime_type: "application/json", temperature: 0 },
+        model,
+        messages: [
+          { role: "system", content: SYSTEM_INSTRUCTION },
+          {
+            role: "user",
+            content: [
+              { type: "image_url", image_url: { url: imageUrl } },
+              { type: "text", text: "请从这张外卖订单截图提取订单信息。" },
+            ],
+          },
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0,
       }),
     });
     if (!response.ok) {
       const detail = await response.text();
-      console.error("[Gemini order recognition] Provider request failed", {
+      console.error("[Qwen order recognition] Provider request failed", {
         status: response.status,
         detail: detail.slice(0, 1000),
       });
       return null;
     }
     const payload = await response.json();
-    const text = payload.candidates?.[0]?.content?.parts?.find((part) => typeof part.text === "string")?.text;
-    return parseGeminiResponse(text);
+    const text = payload.choices?.[0]?.message?.content;
+    return parseQwenResponse(text);
   } finally {
     clearTimeout(timeout);
   }
@@ -180,18 +187,18 @@ const handler = async function handler(req, res) {
     return res.status(204).end();
   }
   if (req.method !== "POST") return reply(res, 405, { error: "请求方式不被支持" }, origin);
-  if (!process.env.GEMINI_API_KEY) return reply(res, 503, { error: "自动识别暂时不可用，请确认订单信息。" }, origin);
+  if (!process.env.DASHSCOPE_API_KEY) return reply(res, 503, { error: "自动识别暂时不可用，请确认订单信息。" }, origin);
 
   try {
     const image = parseMultipartImage(await readBuffer(req), req.headers?.["content-type"]);
     if (!image || !ALLOWED_IMAGE_TYPES.has(image.mimeType) || image.bytes.length === 0 || image.bytes.length > MAX_IMAGE_SIZE || !hasExpectedImageSignature(image.bytes, image.mimeType)) {
       return reply(res, 400, { error: "请上传不超过 3MB 的 JPG、PNG 或 WEBP 图片。" }, origin);
     }
-    const recognized = await recognizeWithGemini(image);
+    const recognized = await recognizeWithQwen(image);
     if (!recognized) return reply(res, 502, { error: "自动识别暂时不可用，请确认订单信息。" }, origin);
     return reply(res, 200, recognized, origin);
   } catch (error) {
-    console.error("[Gemini order recognition] Provider request threw", {
+    console.error("[Qwen order recognition] Provider request threw", {
       name: error?.name,
       message: error?.message,
     });

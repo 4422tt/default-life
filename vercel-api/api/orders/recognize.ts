@@ -81,7 +81,7 @@ export default async function handler(request: Request) {
     return new Response(null, { status: 204, headers: { "Access-Control-Allow-Methods": "POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type", ...corsHeaders(origin) } });
   }
   if (request.method !== "POST") return json({ error: "请求方式不被支持" }, 405, origin);
-  if (!process.env.GEMINI_API_KEY) return json({ error: "自动识别暂时不可用，请确认订单信息。" }, 503, origin);
+  if (!process.env.DASHSCOPE_API_KEY) return json({ error: "自动识别暂时不可用，请确认订单信息。" }, 503, origin);
 
   try {
     const form = await request.formData();
@@ -93,31 +93,43 @@ export default async function handler(request: Request) {
     const imageData = Buffer.from(await image.arrayBuffer()).toString("base64");
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 20_000);
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(process.env.GEMINI_MODEL || "gemini-2.5-flash")}:generateContent`, {
+    const model = process.env.DASHSCOPE_VISION_MODEL || "qwen3.6-flash";
+    const endpoint = process.env.DASHSCOPE_BASE_URL || "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions";
+    const response = await fetch(endpoint, {
       method: "POST",
       signal: controller.signal,
-      headers: { "x-goog-api-key": process.env.GEMINI_API_KEY, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${process.env.DASHSCOPE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        system_instruction: { parts: [{ text: instruction }] },
-        contents: [{ parts: [{ inline_data: { mime_type: image.type, data: imageData } }, { text: "请从这张外卖订单截图提取订单信息。" }] }],
-        generationConfig: { response_mime_type: "application/json", temperature: 0 },
+        model,
+        messages: [
+          { role: "system", content: instruction },
+          {
+            role: "user",
+            content: [
+              { type: "image_url", image_url: { url: `data:${image.type};base64,${imageData}` } },
+              { type: "text", text: "请从这张外卖订单截图提取订单信息。" },
+            ],
+          },
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0,
       }),
     });
     clearTimeout(timer);
     if (!response.ok) {
       const detail = await response.text();
-      console.error("[Gemini order recognition] Provider request failed", {
+      console.error("[Qwen order recognition] Provider request failed", {
         status: response.status,
         detail: detail.slice(0, 1000),
       });
       return json({ error: "自动识别暂时不可用，请确认订单信息。" }, 502, origin);
     }
     const payload = await response.json();
-    const text = payload.candidates?.[0]?.content?.parts?.find((part: { text?: unknown }) => typeof part.text === "string")?.text;
+    const text = payload.choices?.[0]?.message?.content;
     const recognized = normalize(text);
     return recognized ? json(recognized, 200, origin) : json({ error: "自动识别暂时不可用，请确认订单信息。" }, 502, origin);
   } catch (error) {
-    console.error("[Gemini order recognition] Provider request threw", {
+    console.error("[Qwen order recognition] Provider request threw", {
       name: error instanceof Error ? error.name : "UnknownError",
       message: error instanceof Error ? error.message : "Unknown error",
     });
