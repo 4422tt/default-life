@@ -42,10 +42,8 @@ function isRecognition(value: unknown): value is GeminiOrderRecognition {
 }
 
 export async function recognizeOrderScreenshot(file: File): Promise<GeminiOrderRecognition> {
-  const endpoint = process.env.NEXT_PUBLIC_ORDER_RECOGNITION_ENDPOINT?.trim();
-  if (!endpoint) {
-    throw new GeminiRecognitionError("SERVICE_NOT_CONFIGURED", "自动识别暂时不可用，请确认订单信息。");
-  }
+  const endpoint = process.env.NEXT_PUBLIC_ORDER_RECOGNITION_ENDPOINT?.trim()
+    || "https://default-life.vercel.app/api/orders/recognize";
 
   const formData = new FormData();
   formData.set("image", file, file.name);
