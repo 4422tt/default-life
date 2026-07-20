@@ -55,6 +55,7 @@ import {
   restoreBackup,
   saveDecision,
   saveFeedback,
+  updateTodayContext,
   updateTheme,
 } from "@/lib/storage";
 import type {
@@ -143,10 +144,23 @@ export function DefaultLifeApp() {
   };
 
   const beginRecommendation = () => {
-    setContext(defaultContext);
+    setContext(settings?.todayContext ?? defaultContext);
     setShownIds([]);
     setResult(null);
     setFlow("context");
+  };
+
+  const openTodayState = () => {
+    setContext(settings?.todayContext ?? defaultContext);
+    setView("today");
+    setFlow("context");
+  };
+
+  const updateTodayState = (nextContext: DecisionContext) => {
+    setContext(nextContext);
+    void updateTodayContext(nextContext).catch(() => {
+      setToast("今天的状态暂时没有保存，请稍后重试。 ");
+    });
   };
 
   const generateRecommendation = (nextContext: DecisionContext) => {
@@ -158,6 +172,9 @@ export function DefaultLifeApp() {
       return;
     }
     setContext(nextContext);
+    void updateTodayContext(nextContext).catch(() => {
+      setToast("今天的状态暂时没有保存，但本次推荐仍会继续。 ");
+    });
     setResult(nextResult);
     setShownIds([nextResult.primary.option.id]);
     setFlow("recommendation");
@@ -224,7 +241,7 @@ export function DefaultLifeApp() {
             {view === "today" && flow === "context" && (
               <ContextView
                 value={context}
-                onChange={setContext}
+                onChange={updateTodayState}
                 onBack={() => setFlow("home")}
                 onSubmit={() => generateRecommendation(context)}
               />
@@ -243,7 +260,12 @@ export function DefaultLifeApp() {
               <FeedbackView decision={decision} onSubmit={submitFeedback} />
             )}
             {view === "defaults" && defaultsFlow === "pool" && (
-              <DefaultsManager options={options} onImport={() => setDefaultsFlow("import")} />
+              <DefaultsManager
+                options={options}
+                onImport={() => setDefaultsFlow("import")}
+                todayContext={settings.todayContext}
+                onEditTodayState={openTodayState}
+              />
             )}
             {view === "defaults" && defaultsFlow === "import" && (
               <ImportLifeView latestImport={latestImport} existingOptions={options} onBack={() => setDefaultsFlow("pool")} />

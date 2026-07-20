@@ -13,6 +13,7 @@ import {
   X,
 } from "@phosphor-icons/react";
 import { FoodSprite } from "@/components/game-visuals";
+import { TodayStateSummary } from "@/components/today-state-summary";
 import { energyLabels, kindLabels, priceLabels, weatherLabels } from "@/lib/labels";
 import {
   addFoodOption,
@@ -28,19 +29,22 @@ import type {
   HealthLevel,
   LoveLevel,
   PriceLevel,
+  DecisionContext,
   Weather,
 } from "@/lib/types";
 
 interface DefaultsManagerProps {
   options: FoodOption[];
   onImport: () => void;
+  todayContext?: DecisionContext;
+  onEditTodayState: () => void;
 }
 
 const weatherValues: Weather[] = ["hot", "cold", "rain", "normal"];
 const energyValues: Energy[] = ["low", "normal", "high"];
 const companionValues: Companion[] = ["solo", "friends"];
 
-export function DefaultsManager({ options, onImport }: DefaultsManagerProps) {
+export function DefaultsManager({ options, onImport, todayContext, onEditTodayState }: DefaultsManagerProps) {
   const [editing, setEditing] = useState<FoodOption | null | undefined>(undefined);
   const activeCount = options.filter((option) => option.active).length;
   const sorted = useMemo(
@@ -66,6 +70,8 @@ export function DefaultsManager({ options, onImport }: DefaultsManagerProps) {
           <p className="mt-2 max-w-xs text-xs leading-5 text-[var(--muted)]">上传过去的选择，让 AI 帮你生成默认规则</p>
         </div>
       </div>
+
+      <TodayStateSummary context={todayContext} onEdit={onEditTodayState} />
 
       {options.some((option) => option.isSample) && (
         <div className="interior-note mt-9 flex items-start gap-3 p-4 text-sm leading-6 text-[var(--muted)]">

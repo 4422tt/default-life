@@ -95,6 +95,7 @@ export interface AppSettings {
   id: "app";
   theme: ThemePreference;
   weightVersion: 1;
+  todayContext?: DecisionContext;
 }
 
 export interface LifeImportCandidate {

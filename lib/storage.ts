@@ -284,7 +284,13 @@ export async function saveFeedback(
 }
 
 export async function updateTheme(theme: AppSettings["theme"]) {
-  await db.settings.put({ id: "app", theme, weightVersion: 1 });
+  const current = await db.settings.get("app");
+  await db.settings.put({ id: "app", weightVersion: 1, ...current, theme });
+}
+
+export async function updateTodayContext(todayContext: DecisionContext) {
+  const current = await db.settings.get("app");
+  await db.settings.put({ id: "app", theme: "system", weightVersion: 1, ...current, todayContext });
 }
 
 export async function createBackup(): Promise<BackupPayload> {
