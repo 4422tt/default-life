@@ -311,12 +311,12 @@ button:disabled {
 
 .interior-title {
   margin: 0;
-  max-width: 13ch;
   color: var(--ink);
   font-size: clamp(2.5rem, 4.5vw, 4.25rem);
   font-weight: 670;
   line-height: 0.98;
   letter-spacing: -0.065em;
+  white-space: nowrap;
 }
 
 .interior-lede {
@@ -347,6 +347,7 @@ button:disabled {
 
   .interior-title {
     font-size: clamp(2.3rem, 12vw, 3.35rem);
+    white-space: normal;
   }
 }
 
