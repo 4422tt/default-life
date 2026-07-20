@@ -586,12 +586,6 @@ function LandingHomeView({
           <PixelDie compact animated={false} />
           <span>Default Life</span>
         </a>
-        <nav className="life-nav-links" aria-label="首页导航">
-          <a href="#how-it-works">功能介绍</a>
-          <a href="#scenarios">使用场景</a>
-          <a href="#about">关于我</a>
-          <button type="button" onClick={onOpenDefaults}>开始使用</button>
-        </nav>
       </header>
 
       <section className="life-hero" id="top" aria-labelledby="home-title">
@@ -605,7 +599,7 @@ function LandingHomeView({
           </div>
           <div className="life-actions">
             <button className="life-button life-button-primary" type="button" onClick={onOpenDefaults} title="从你的历史选择开始">
-              建立默认规则 <ArrowRight size={17} weight="bold" />
+              开始使用 <ArrowRight size={17} weight="bold" />
             </button>
             <button className="life-button life-button-secondary" type="button" onClick={activateDemo}>查看演示</button>
           </div>
