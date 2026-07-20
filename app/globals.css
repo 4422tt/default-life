@@ -1,22 +1,22 @@
 @import "tailwindcss";
 
 :root {
-  --canvas: #f7f8fa;
+  --canvas: #fbfbfa;
   --surface: #ffffff;
   --surface-raised: #ffffff;
-  --surface-soft: #f1f3f5;
-  --ink: #17191c;
-  --muted: #626a74;
-  --faint: #8c949e;
-  --line: #e0e4e8;
-  --accent: #4068c8;
-  --accent-strong: #3156ae;
-  --accent-soft: #edf2fc;
+  --surface-soft: #f4f4f2;
+  --ink: #171717;
+  --muted: #6f7175;
+  --faint: #94969a;
+  --line: #e7e7e4;
+  --accent: #1d1e20;
+  --accent-strong: #121315;
+  --accent-soft: #f0f0ee;
   --accent-ink: #ffffff;
   --danger: #aa3e48;
   --danger-soft: #f6e2e4;
-  --shadow: 0 22px 60px rgb(38 52 68 / 0.1);
-  --shadow-soft: 0 8px 24px rgb(38 52 68 / 0.055);
+  --shadow: 0 18px 50px rgb(20 20 20 / 0.06);
+  --shadow-soft: 0 7px 20px rgb(20 20 20 / 0.035);
   --pixel-ink: #1b1d20;
   --pixel-side: #5c626a;
 }
@@ -30,9 +30,9 @@
   --muted: #abb2bb;
   --faint: #818a94;
   --line: #353c45;
-  --accent: #88a7eb;
-  --accent-strong: #afc3f2;
-  --accent-soft: #263651;
+  --accent: #e9e9e6;
+  --accent-strong: #f3f3f0;
+  --accent-soft: #2a2a28;
   --accent-ink: #171b20;
   --danger: #ef9aa2;
   --danger-soft: #47262b;
@@ -92,21 +92,21 @@ button:disabled {
 
 .app-surface {
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: 16px;
   background: var(--surface);
   box-shadow: var(--shadow-soft);
 }
 
 .app-surface-raised {
   border: 1px solid color-mix(in srgb, var(--line) 74%, transparent);
-  border-radius: 14px;
+  border-radius: 16px;
   background: var(--surface-raised);
   box-shadow: var(--shadow);
 }
 
 .app-soft {
   border: 1px solid color-mix(in srgb, var(--line) 74%, transparent);
-  border-radius: 10px;
+  border-radius: 14px;
   background: var(--surface-soft);
 }
 
@@ -131,14 +131,24 @@ button:disabled {
 }
 
 .app-button-primary {
-  background: var(--accent);
+  background: #191a1c;
   color: var(--accent-ink);
-  box-shadow: 0 5px 14px color-mix(in srgb, var(--accent) 20%, transparent);
+  box-shadow: 0 5px 14px rgb(20 20 20 / 0.1);
 }
 
 .app-button-primary:hover:not(:disabled) {
-  background: var(--accent-strong);
+  background: #353638;
   transform: translateY(-1px);
+}
+
+[data-theme="dark"] .app-button-primary {
+  background: #f0f0ed;
+  color: #171717;
+  box-shadow: none;
+}
+
+[data-theme="dark"] .app-button-primary:hover:not(:disabled) {
+  background: #dcdcd8;
 }
 
 .app-button-secondary {
@@ -191,7 +201,7 @@ button:disabled {
 
   article.app-surface:hover {
     transform: translateY(-1px);
-    border-color: color-mix(in srgb, var(--accent) 18%, var(--line));
+    border-color: #d8d8d5;
     box-shadow: var(--shadow-soft);
   }
 }
@@ -275,8 +285,80 @@ button:disabled {
 
 .sidebar-note {
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 14px;
   background: var(--surface-soft);
+}
+
+.interior-page {
+  width: 100%;
+  max-width: 76rem;
+  margin: 0 auto;
+  padding: clamp(3.5rem, 7vw, 6.25rem) clamp(1.25rem, 4vw, 3.75rem) 7rem;
+}
+
+.interior-page--narrow {
+  max-width: 68rem;
+}
+
+.interior-eyebrow {
+  margin: 0 0 0.85rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 720;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.interior-title {
+  margin: 0;
+  max-width: 13ch;
+  color: var(--ink);
+  font-size: clamp(2.5rem, 4.5vw, 4.25rem);
+  font-weight: 670;
+  line-height: 0.98;
+  letter-spacing: -0.065em;
+}
+
+.interior-lede {
+  max-width: 38rem;
+  margin: 1.35rem 0 0;
+  color: var(--muted);
+  font-size: 0.98rem;
+  line-height: 1.75;
+}
+
+.interior-note {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface-soft);
+}
+
+.interior-stat {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+@media (max-width: 767px) {
+  .interior-page {
+    padding-top: 2.5rem;
+    padding-bottom: 6.5rem;
+  }
+
+  .interior-title {
+    font-size: clamp(2.3rem, 12vw, 3.35rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 .home-page {

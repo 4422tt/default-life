@@ -49,12 +49,12 @@ export function DefaultsManager({ options, onImport }: DefaultsManagerProps) {
   );
 
   return (
-    <section className="screen-enter mx-auto w-full max-w-6xl px-4 pb-28 pt-6 md:px-8 md:pb-10 md:pt-10">
+    <section className="interior-page screen-enter">
       <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="mb-2 text-sm font-semibold text-[var(--accent-strong)]">我的默认池</p>
-          <h1 className="text-3xl font-semibold tracking-[-0.04em] md:text-4xl">把真正喜欢的留下来</h1>
-          <p className="mt-3 max-w-xl text-sm leading-6 text-[var(--muted)] md:text-base">
+          <p className="interior-eyebrow">我的默认池</p>
+          <h1 className="interior-title">把真正喜欢的留下来</h1>
+          <p className="interior-lede">
             目前有 {activeCount} 个可推荐选项。你可以从过去的选择生成规则，也可以继续编辑每一个细节。
           </p>
         </div>
@@ -68,8 +68,8 @@ export function DefaultsManager({ options, onImport }: DefaultsManagerProps) {
       </div>
 
       {options.some((option) => option.isSample) && (
-        <div className="app-soft mt-7 flex items-start gap-3 p-4 text-sm leading-6 text-[var(--muted)]">
-          <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-[9px] bg-[var(--accent-soft)] text-[var(--accent-strong)]">
+        <div className="interior-note mt-9 flex items-start gap-3 p-4 text-sm leading-6 text-[var(--muted)]">
+          <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-[9px] bg-[var(--surface)] text-[var(--ink)]">
             <PencilSimple size={16} />
           </span>
           <p>这里先放了几个示例，方便立即体验。编辑任意字段后，它就会成为你的真实默认值。</p>
@@ -77,9 +77,9 @@ export function DefaultsManager({ options, onImport }: DefaultsManagerProps) {
       )}
 
       {sorted.length === 0 ? (
-        <div className="app-surface mt-8 grid min-h-72 place-items-center p-8 text-center">
+        <div className="app-surface mt-10 grid min-h-72 place-items-center p-8 text-center">
           <div>
-            <div className="mx-auto grid h-14 w-14 place-items-center rounded-[16px] bg-[var(--accent-soft)] text-[var(--accent-strong)]">
+            <div className="mx-auto grid h-14 w-14 place-items-center rounded-[16px] bg-[var(--surface-soft)] text-[var(--ink)]">
               <Sparkle size={28} weight="fill" />
             </div>
             <h2 className="mt-5 text-xl font-semibold">还没有默认规则</h2>
@@ -90,7 +90,7 @@ export function DefaultsManager({ options, onImport }: DefaultsManagerProps) {
           </div>
         </div>
       ) : (
-        <div className="mt-8 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="mt-10 grid grid-cols-1 gap-5 lg:grid-cols-2">
           {sorted.map((option) => (
             <OptionCard key={option.id} option={option} onEdit={() => setEditing(option)} />
           ))}
@@ -133,7 +133,7 @@ function OptionCard({ option, onEdit }: { option: FoodOption; onEdit: () => void
             {priceLabels[option.priceLevel]} / 约 {option.etaMinutes} 分钟 / 历史 {option.historicalCount ?? option.choiceCount} 次
           </p>
         </div>
-        <div className="flex shrink-0 items-center gap-1 text-[var(--accent-strong)]" aria-label={`喜欢程度 ${option.love} 星`}>
+        <div className="flex shrink-0 items-center gap-1 text-[var(--muted)]" aria-label={`喜欢程度 ${option.love} 星`}>
           <HeartStraight size={18} weight="fill" />
           <span className="text-sm font-bold">{option.love}</span>
         </div>

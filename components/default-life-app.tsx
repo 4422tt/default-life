@@ -268,16 +268,16 @@ export function DefaultLifeApp() {
 function AppNavigation({ view, onNavigate }: { view: MainView; onNavigate: (view: MainView) => void }) {
   return (
     <>
-      <aside className="fixed inset-y-0 left-0 z-20 hidden w-60 flex-col border-r border-[var(--line)] bg-[var(--surface)] px-4 py-6 md:flex">
+      <aside className="fixed inset-y-0 left-0 z-20 hidden w-60 flex-col border-r border-[var(--line)] bg-[var(--surface)] px-5 py-7 md:flex">
         <Brand />
-        <nav className="mt-10 space-y-1.5" aria-label="主要导航">
+        <nav className="mt-12 space-y-1.5" aria-label="主要导航">
           {navItems.map((item) => {
             const Icon = item.icon;
             const active = view === item.id;
             return (
               <button
                 key={item.id}
-                className="flex min-h-11 w-full items-center gap-3 rounded-[10px] border border-transparent px-3 text-left text-sm font-semibold text-[var(--muted)] transition-colors hover:bg-[var(--surface-soft)] hover:text-[var(--ink)] aria-[current=page]:border-[var(--line)] aria-[current=page]:bg-[var(--accent-soft)] aria-[current=page]:text-[var(--accent-strong)]"
+                className="flex min-h-11 w-full items-center gap-3 rounded-[12px] border border-transparent px-3 text-left text-sm font-semibold text-[var(--muted)] transition-colors hover:bg-[var(--surface-soft)] hover:text-[var(--ink)] aria-[current=page]:border-[var(--line)] aria-[current=page]:bg-[var(--surface-soft)] aria-[current=page]:text-[var(--ink)]"
                 aria-current={active ? "page" : undefined}
                 onClick={() => onNavigate(item.id)}
               >
@@ -304,7 +304,7 @@ function AppNavigation({ view, onNavigate }: { view: MainView; onNavigate: (view
           return (
             <button
               key={item.id}
-              className="flex min-h-14 flex-col items-center justify-center gap-1 rounded-[11px] text-[11px] font-semibold text-[var(--muted)] aria-[current=page]:bg-[var(--accent-soft)] aria-[current=page]:text-[var(--accent-strong)]"
+              className="flex min-h-14 flex-col items-center justify-center gap-1 rounded-[11px] text-[11px] font-semibold text-[var(--muted)] aria-[current=page]:bg-[var(--surface-soft)] aria-[current=page]:text-[var(--ink)]"
               aria-current={active ? "page" : undefined}
               onClick={() => onNavigate(item.id)}
             >
@@ -1291,18 +1291,18 @@ function SettingsView({
   };
 
   return (
-    <section className="screen-enter mx-auto w-full max-w-5xl px-4 pb-28 pt-6 md:px-8 md:pb-12 md:pt-10">
+    <section className="interior-page interior-page--narrow screen-enter">
       <div>
-        <p className="mb-2 text-sm font-semibold text-[var(--accent-strong)]">设置</p>
-        <h1 className="text-3xl font-semibold tracking-[-0.04em] md:text-4xl">保持简单，也保有退路</h1>
-        <p className="mt-3 max-w-xl text-sm leading-6 text-[var(--muted)] md:text-base">没有账号，也没有云端。你可以随时导出一份完整的数据备份。</p>
+        <p className="interior-eyebrow">设置</p>
+        <h1 className="interior-title">保持简单，也保有退路</h1>
+        <p className="interior-lede">没有账号，也没有云端。你可以随时导出一份完整的数据备份。</p>
       </div>
 
       <div className="mt-8 grid grid-cols-1 gap-5 lg:grid-cols-[1fr_0.9fr]">
         <div className="space-y-5">
           <section className="app-surface p-5 md:p-6">
             <div className="flex items-start gap-3">
-              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-[12px] bg-[var(--accent-soft)] text-[var(--accent-strong)]"><Sun size={20} /></div>
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-[12px] bg-[var(--surface-soft)] text-[var(--ink)]"><Sun size={20} /></div>
               <div>
                 <h2 className="font-semibold">界面主题</h2>
                 <p className="mt-1 text-sm leading-6 text-[var(--muted)]">默认跟随设备，也可以固定明亮或深色。</p>
@@ -1326,7 +1326,7 @@ function SettingsView({
 
           <section className="app-surface p-5 md:p-6">
             <div className="flex items-start gap-3">
-              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-[12px] bg-[var(--accent-soft)] text-[var(--accent-strong)]"><Database size={20} /></div>
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-[12px] bg-[var(--surface-soft)] text-[var(--ink)]"><Database size={20} /></div>
               <div>
                 <h2 className="font-semibold">数据备份</h2>
                 <p className="mt-1 text-sm leading-6 text-[var(--muted)]">包含默认池、选择历史、反馈和当前设置。</p>
@@ -1350,20 +1350,20 @@ function SettingsView({
           </section>
         </div>
 
-        <aside className="app-soft h-fit p-5 md:p-6 lg:sticky lg:top-8">
+        <aside className="interior-note h-fit p-5 md:p-6 lg:sticky lg:top-8">
           <div className="flex items-start gap-3">
-            <ShieldCheck size={24} className="shrink-0 text-[var(--accent-strong)]" />
+            <ShieldCheck size={24} className="shrink-0 text-[var(--ink)]" />
             <div>
               <h2 className="font-semibold">本地优先</h2>
               <p className="mt-2 text-sm leading-6 text-[var(--muted)]">IndexedDB 绑定当前浏览器和网站地址，不会自动跨设备同步。</p>
             </div>
           </div>
           <dl className="mt-6 grid grid-cols-2 gap-3">
-            <div className="rounded-[12px] bg-[var(--surface-raised)] p-4">
+            <div className="interior-stat p-4">
               <dt className="text-xs text-[var(--muted)]">默认选项</dt>
               <dd className="mt-1 text-2xl font-semibold tabular-nums">{optionCount}</dd>
             </div>
-            <div className="rounded-[12px] bg-[var(--surface-raised)] p-4">
+            <div className="interior-stat p-4">
               <dt className="text-xs text-[var(--muted)]">历史记录</dt>
               <dd className="mt-1 text-2xl font-semibold tabular-nums">{decisionCount}</dd>
             </div>

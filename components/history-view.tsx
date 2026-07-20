@@ -34,19 +34,19 @@ export function HistoryView({ decisions, imports }: HistoryViewProps) {
   }
 
   return (
-    <section className="screen-enter mx-auto w-full max-w-6xl px-4 pb-28 pt-6 md:px-8 md:pb-10 md:pt-10">
+    <section className="interior-page screen-enter">
       <div>
-        <p className="mb-2 text-sm font-semibold text-[var(--accent-strong)]">选择历史</p>
-        <h1 className="text-3xl font-semibold tracking-[-0.04em] md:text-4xl">看见默认值怎么变化</h1>
-        <p className="mt-3 max-w-xl text-sm leading-6 text-[var(--muted)] md:text-base">
+        <p className="interior-eyebrow">选择历史</p>
+        <h1 className="interior-title">看见默认值怎么变化</h1>
+        <p className="interior-lede">
           每次推荐都保存当时的情境和评分版本。删除选项也不会抹掉过去的选择。
         </p>
       </div>
 
       {sorted.length === 0 ? (
-        <div className="app-surface mt-8 grid min-h-80 place-items-center p-8 text-center">
+        <div className="app-surface mt-10 grid min-h-80 place-items-center p-8 text-center">
           <div>
-            <div className="mx-auto grid h-14 w-14 place-items-center rounded-[16px] bg-[var(--accent-soft)] text-[var(--accent-strong)]">
+            <div className="mx-auto grid h-14 w-14 place-items-center rounded-[16px] bg-[var(--surface-soft)] text-[var(--ink)]">
               <ClockCounterClockwise size={28} />
             </div>
             <h2 className="mt-5 text-xl font-semibold">还没有选择记录</h2>
@@ -92,17 +92,17 @@ export function HistoryView({ decisions, imports }: HistoryViewProps) {
             ))}
           </div>
 
-          <aside className="app-soft h-fit p-5 lg:sticky lg:top-8">
+          <aside className="interior-note h-fit p-5 lg:sticky lg:top-8">
             <p className="text-sm font-semibold">这不是效率报表</p>
             <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
               历史只负责帮助你修正默认值，不评价选择是否正确。反馈会有限度地影响下次排序。
             </p>
             <dl className="mt-6 grid grid-cols-2 gap-3">
-              <div className="rounded-[12px] bg-[var(--surface-raised)] p-4">
+              <div className="interior-stat p-4">
                 <dt className="text-xs text-[var(--muted)]">完成选择</dt>
                 <dd className="mt-1 text-2xl font-semibold tabular-nums">{sorted.length}</dd>
               </div>
-              <div className="rounded-[12px] bg-[var(--surface-raised)] p-4">
+              <div className="interior-stat p-4">
                 <dt className="text-xs text-[var(--muted)]">觉得很准</dt>
                 <dd className="mt-1 text-2xl font-semibold tabular-nums">{sorted.filter((item) => item.feedback === "great").length}</dd>
               </div>
@@ -124,15 +124,15 @@ function LifeTrajectory({ decisions, imports, onBack }: HistoryViewProps & { onB
   const uniqueChoices = new Set(decisions.map((decision) => decision.selectedName)).size;
 
   return (
-    <section className="screen-enter mx-auto w-full max-w-6xl px-4 pb-28 pt-6 md:px-8 md:pb-10 md:pt-10">
+    <section className="interior-page screen-enter">
       <button className="app-button app-button-quiet -ml-3 min-h-10 px-3 text-sm" onClick={onBack}>
         <ArrowLeft size={17} /> 返回历史
       </button>
 
-      <div className="mt-7 max-w-3xl">
-        <p className="text-sm font-semibold text-[var(--accent-strong)]">隐藏视图</p>
-        <h1 className="mt-3 text-4xl font-semibold tracking-[-0.05em] md:text-6xl">我的人生轨迹</h1>
-        <p className="mt-5 max-w-2xl text-base leading-7 text-[var(--muted)]">
+      <div className="mt-9 max-w-3xl">
+        <p className="interior-eyebrow">隐藏视图</p>
+        <h1 className="interior-title">我的人生轨迹</h1>
+        <p className="interior-lede max-w-2xl">
           每天吃什么、选择了多少次、偏好如何变化，都在这里变成一条可以回看的时间线。
         </p>
       </div>
