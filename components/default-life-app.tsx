@@ -599,7 +599,7 @@ function LandingHomeView({
           </div>
           <div className="life-actions">
             <button className="life-button life-button-primary" type="button" onClick={onOpenDefaults} title="从你的历史选择开始">
-              开始使用 <ArrowRight size={17} weight="bold" />
+              建立默认池 <ArrowRight size={17} weight="bold" />
             </button>
             <button className="life-button life-button-secondary" type="button" onClick={activateDemo}>查看演示</button>
           </div>
@@ -622,10 +622,12 @@ function LandingHomeView({
           </button>
           <p className="life-dice-status" aria-live="polite">
             {dicePhase === "rolling"
-              ? "命运正在生成中…"
+              ? "正在抽取…"
+              : !hasPool
+                ? "建立默认池后即可抽取"
               : dicePhase === "result" || dicePhase === "accepted"
                 ? `今日世界线 · 结果 ${diceValue}`
-                : "只从你允许的选项中抽取"}
+                : "点击骰子开始抽取"}
           </p>
           <span className="life-pool-status" data-demo={demoMode}>{poolLabel}</span>
           <p className="life-boundary-note">随机发生在你的边界之内。</p>
@@ -644,7 +646,14 @@ function LandingHomeView({
               {demoMode && <span className="life-demo-badge">演示数据</span>}
               <strong>等待抽取</strong>
               <p>默认池已准备好。点击中间骰子，从符合今天状态的选项中选择。</p>
-              <button className="life-card-button" type="button" onClick={() => rollDice()}>开始抽取</button>
+              <button
+                className="life-card-button"
+                type="button"
+                onClick={() => rollDice()}
+                disabled={dicePhase === "rolling"}
+              >
+                开始抽取
+              </button>
             </div>
           ) : (
             <div className="life-choice-result">

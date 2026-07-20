@@ -1545,9 +1545,10 @@ button:disabled {
   display: grid;
   grid-template-columns: minmax(0, 1.02fr) minmax(220px, 0.8fr) minmax(275px, 0.94fr);
   align-items: center;
-  gap: clamp(1.35rem, 3.15vw, 3rem);
-  min-height: min(40.5rem, calc(100dvh - 78px));
-  padding: clamp(1.15rem, 2.7vh, 2rem) 0 clamp(1.35rem, 2.7vh, 2.25rem);
+  width: min(100%, 1120px);
+  gap: clamp(1.1rem, 2.4vw, 2.4rem);
+  min-height: min(37.5rem, calc(100dvh - 118px));
+  padding: clamp(0.6rem, 1.3vh, 1.05rem) 0 clamp(1.35rem, 2.7vh, 2.25rem);
 }
 
 .life-copy {
@@ -1679,11 +1680,16 @@ button:disabled {
   padding: 0.45rem;
   background: transparent;
   color: inherit;
-  transition: background-color 160ms ease, transform 160ms ease, opacity 160ms ease;
+  cursor: pointer;
+  transition: background-color 220ms cubic-bezier(0.16, 1, 0.3, 1), transform 220ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 220ms cubic-bezier(0.16, 1, 0.3, 1), opacity 160ms ease;
 }
 
-.life-die-trigger:hover:not(:disabled) {
-  background: #fcfcfc;
+@media (hover: hover) {
+  .life-die-trigger:hover:not(:disabled) {
+    background: #fcfcfc;
+    box-shadow: 0 14px 26px rgb(23 25 28 / 0.09);
+    transform: translateY(-5px) rotate(-1.5deg);
+  }
 }
 
 .life-die-trigger:disabled {
