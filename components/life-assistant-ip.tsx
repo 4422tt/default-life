@@ -1,7 +1,10 @@
 "use client";
 
 import { CaretUp, GearSix, X } from "@phosphor-icons/react";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+
+const TYPING_FRAME_SEQUENCE = [0, 1, 2, 3, 2, 1];
+const TYPING_FRAME_INTERVAL_MS = 160;
 
 export function LifeAssistantIp({
   assetBasePath = "",
@@ -16,10 +19,51 @@ export function LifeAssistantIp({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(false);
+  const [typingFrameIndex, setTypingFrameIndex] = useState(0);
+  const isOnline = true;
+  const typingFrameSources = useMemo(
+    () => [1, 2, 3, 4].map(
+      (frame) => `${assetBasePath}/assets/assistant-ip/life-typing-${String(frame).padStart(2, "0")}.png`,
+    ),
+    [assetBasePath],
+  );
+  const isTyping = isOpen && isOnline && !reducedMotion;
+  const activeFrameSource = typingFrameSources[typingFrameIndex] ?? typingFrameSources[0];
   const close = () => setIsOpen(false);
 
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const updatePreference = () => setReducedMotion(mediaQuery.matches);
+    updatePreference();
+    mediaQuery.addEventListener("change", updatePreference);
+    return () => mediaQuery.removeEventListener("change", updatePreference);
+  }, []);
+
+  useEffect(() => {
+    typingFrameSources.forEach((source) => {
+      const frame = new Image();
+      frame.src = source;
+    });
+  }, [typingFrameSources]);
+
+  useEffect(() => {
+    if (!isTyping) {
+      setTypingFrameIndex(0);
+      return;
+    }
+
+    let sequenceIndex = 0;
+    const timer = window.setInterval(() => {
+      sequenceIndex = (sequenceIndex + 1) % TYPING_FRAME_SEQUENCE.length;
+      setTypingFrameIndex(TYPING_FRAME_SEQUENCE[sequenceIndex]);
+    }, TYPING_FRAME_INTERVAL_MS);
+
+    return () => window.clearInterval(timer);
+  }, [isTyping]);
+
   return (
-    <aside className={`life-assistant-ip ${isOpen ? "is-open" : "is-collapsed"}`} data-online="true" aria-label="Default Life 像素助手">
+    <aside className={`life-assistant-ip ${isOpen ? "is-open" : "is-collapsed"}`} data-online={isOnline} aria-label="Default Life 像素助手">
       <div className="life-assistant-shell">
         <div className="life-assistant-topbar">
           <span className="life-assistant-status"><i aria-hidden="true" /> Life</span>
@@ -60,8 +104,7 @@ export function LifeAssistantIp({
                 <p>系统只在你留下的偏好范围内做决定。</p>
               </div>
               <div className="life-assistant-art" data-avatar-slot="default-life-companion">
-                <img src={`${assetBasePath}/assets/assistant-ip/workstation.png`} alt="正在电脑前工作的像素生活助手" />
-                <span className="life-assistant-typing" aria-label="正在输入" />
+                <img src={activeFrameSource} alt="正在电脑前工作的像素生活助手" />
               </div>
             </div>
 
@@ -74,7 +117,7 @@ export function LifeAssistantIp({
           </>
         ) : (
           <button className="life-assistant-collapsed" type="button" onClick={() => setIsOpen(true)}>
-            <span className="life-assistant-collapsed-art"><img src={`${assetBasePath}/assets/assistant-ip/workstation.png`} alt="展开 Default Life 像素助手" /></span>
+            <span className="life-assistant-collapsed-art"><img src={typingFrameSources[0]} alt="展开 Default Life 像素助手" /></span>
             <span className="life-assistant-collapsed-copy"><b>Life</b><small>正在整理你的默认规则</small><em><i aria-hidden="true" /> 在线</em></span>
           </button>
         )}
