@@ -543,6 +543,28 @@ function LandingHomeView({
   }, [decisions]);
   const selectedOption = homeResult?.primary.option;
   const dishDisplay = selectedOption ? formatDishDisplay(selectedOption.name) : null;
+  const availablePoolOptions = useMemo(
+    () => poolOptions.filter((option) => !option.cooldownUntil || new Date(option.cooldownUntil) <= new Date()),
+    [poolOptions],
+  );
+  const nonRecentPoolOptions = useMemo(
+    () => availablePoolOptions.filter((option) => !recentIds.includes(option.id)),
+    [availablePoolOptions, recentIds],
+  );
+  const recencyFilteredPool = nonRecentPoolOptions.length > 0 ? nonRecentPoolOptions : availablePoolOptions;
+  const budgetMatchedPool = recencyFilteredPool.filter((option) => option.priceLevel <= currentContext.budget);
+  const contextEligiblePool = budgetMatchedPool.length > 0 ? budgetMatchedPool : recencyFilteredPool;
+  const unseenEligiblePool = contextEligiblePool.filter((option) => !shownIds.includes(option.id));
+  const selectablePool = unseenEligiblePool.length > 0 ? unseenEligiblePool : contextEligiblePool;
+  const excludedReasons = [
+    budgetMatchedPool.length < recencyFilteredPool.length ? "超预算" : null,
+    nonRecentPoolOptions.length < availablePoolOptions.length ? "近期重复" : null,
+    availablePoolOptions.length < poolOptions.length ? "暂不可用" : null,
+  ].filter((reason): reason is string => Boolean(reason));
+  const filterSummaryTitle = `默认池 ${poolOptions.length} 个 · 今日可用 ${selectablePool.length} 个`;
+  const filterSummaryDetail = excludedReasons.length > 0
+    ? `已暂避：${excludedReasons.join(" / ")}`
+    : `依据 ${priceLabels[currentContext.budget]}、${energyLabels[currentContext.energy]}与近期选择筛选`;
   const poolLabel = !hasPool
     ? "还没有可用的默认池"
     : `${demoMode ? "演示默认池" : "当前默认池"}：晚餐 · ${poolOptions.length} 个选项`;
@@ -617,7 +639,7 @@ function LandingHomeView({
           <p className="life-question">今天不想再想什么？</p>
           <div className="life-copy-blocks">
             <p>先写下你的默认值，<br />让系统替你跳过重复选择。</p>
-            <p>它不会替你决定人生，<br />只会在你允许的范围内，<br />帮你减少不必要的消耗。</p>
+            <p>决定权始终属于你。</p>
           </div>
           <div className="life-actions">
             <button className="life-button life-button-primary" type="button" onClick={onOpenDefaults} title="从你的历史选择开始">
@@ -668,6 +690,10 @@ function LandingHomeView({
               {demoMode && <span className="life-demo-badge">演示数据</span>}
               <strong>等待抽取</strong>
               <p>默认池已准备好。点击中间骰子，从符合今天状态的选项中选择。</p>
+              <div className="life-choice-filter-summary" aria-label="今日筛选摘要">
+                <strong>{filterSummaryTitle}</strong>
+                <span>{filterSummaryDetail}</span>
+              </div>
               <button
                 className="life-card-button"
                 type="button"
@@ -688,6 +714,9 @@ function LandingHomeView({
                 </div>
               )}
               <p>从「晚餐默认池」中选择</p>
+              <div className="life-choice-filter-summary life-choice-filter-summary-result" aria-label="本次筛选摘要">
+                <strong>从 {selectablePool.length} 个符合今日条件的选项中完成抽取</strong>
+              </div>
               <span className="life-choice-reason">符合：40 元以内 / 热食 / 已避开近期重复</span>
               {dicePhase === "accepted" ? (
                 <>
