@@ -1630,7 +1630,7 @@ button:disabled {
 
 .life-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.08fr) minmax(220px, 0.68fr) minmax(275px, 0.95fr);
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 0.64fr) minmax(275px, 1fr);
   align-items: center;
   width: min(100%, 1120px);
   gap: clamp(1rem, 1.45vw, 1.5rem);
