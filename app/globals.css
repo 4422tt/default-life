@@ -2732,6 +2732,10 @@ button:disabled {
   animation: life-assistant-float 2.8s ease-in-out infinite;
 }
 
+.life-assistant-ip[data-online="true"] .life-assistant-art img {
+  animation: life-assistant-working 1.08s ease-in-out infinite;
+}
+
 .life-assistant-typing {
   position: absolute;
   z-index: 2;
@@ -2798,6 +2802,10 @@ button:disabled {
   animation: life-assistant-float 2.8s ease-in-out infinite;
 }
 
+.life-assistant-ip[data-online="true"] .life-assistant-collapsed-art img {
+  animation: life-assistant-collapsed-working 1.08s ease-in-out infinite;
+}
+
 .life-assistant-collapsed-copy {
   display: grid;
   gap: 0.1rem;
@@ -2828,6 +2836,20 @@ button:disabled {
   0%, 100% { transform: translateY(0); }
   34% { transform: translateY(-0.08rem) rotate(-0.25deg); }
   66% { transform: translateY(0.05rem) rotate(0.18deg); }
+}
+
+@keyframes life-assistant-working {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  22% { transform: translateY(-0.13rem) rotate(-0.42deg); }
+  46% { transform: translateY(-0.03rem) rotate(0.26deg); }
+  70% { transform: translateY(-0.15rem) rotate(-0.32deg); }
+}
+
+@keyframes life-assistant-collapsed-working {
+  0%, 100% { transform: translateY(0.6rem) rotate(0); }
+  22% { transform: translateY(0.47rem) rotate(-0.42deg); }
+  46% { transform: translateY(0.57rem) rotate(0.26deg); }
+  70% { transform: translateY(0.45rem) rotate(-0.32deg); }
 }
 
 @media (max-width: 767px) {
