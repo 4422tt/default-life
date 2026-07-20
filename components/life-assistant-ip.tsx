@@ -19,7 +19,7 @@ export function LifeAssistantIp({
   const close = () => setIsOpen(false);
 
   return (
-    <aside className={`life-assistant-ip ${isOpen ? "is-open" : "is-collapsed"}`} aria-label="Default Life 像素助手">
+    <aside className={`life-assistant-ip ${isOpen ? "is-open" : "is-collapsed"}`} data-online="true" aria-label="Default Life 像素助手">
       <div className="life-assistant-shell">
         <div className="life-assistant-topbar">
           <span className="life-assistant-status"><i aria-hidden="true" /> Life</span>

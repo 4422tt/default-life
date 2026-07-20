@@ -2609,10 +2609,10 @@ button:disabled {
 
 .life-assistant-status i,
 .life-assistant-collapsed-copy em i {
-  width: 0.4rem;
-  height: 0.4rem;
+  width: 0.5rem;
+  height: 0.5rem;
   border-radius: 50%;
-  background: #1b1d20;
+  background: #4ea96f;
 }
 
 .life-assistant-top-actions {
@@ -2697,6 +2697,13 @@ button:disabled {
   align-items: flex-end;
   justify-content: center;
   min-height: 10.3rem;
+}
+
+.life-assistant-ip[data-online="true"] .life-assistant-art,
+.life-assistant-ip[data-online="true"] .life-assistant-collapsed-art {
+  transform-origin: 50% 100%;
+  will-change: transform;
+  animation: life-assistant-typing-pulse 1s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
 
 .life-assistant-art::after {
@@ -2800,7 +2807,7 @@ button:disabled {
 .life-assistant-collapsed-copy b { color: #20242a; font-size: 0.78rem; }
 .life-assistant-collapsed-copy small { overflow: hidden; color: #68717a; font-size: 0.62rem; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
 .life-assistant-collapsed-copy em { display: inline-flex; align-items: center; gap: 0.24rem; color: #656d75; font-size: 0.59rem; font-style: normal; }
-.life-assistant-collapsed-copy em i { width: 0.3rem; height: 0.3rem; }
+.life-assistant-collapsed-copy em i { width: 0.4rem; height: 0.4rem; }
 
 @keyframes life-assistant-float {
   0%, 100% { transform: translateY(0); }
@@ -2815,6 +2822,12 @@ button:disabled {
 @keyframes life-assistant-typing {
   from { transform: translateY(0); }
   to { transform: translateY(0.14rem); }
+}
+
+@keyframes life-assistant-typing-pulse {
+  0%, 100% { transform: translateY(0); }
+  34% { transform: translateY(-0.08rem) rotate(-0.25deg); }
+  66% { transform: translateY(0.05rem) rotate(0.18deg); }
 }
 
 @media (max-width: 767px) {
