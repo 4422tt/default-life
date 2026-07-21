@@ -130,16 +130,22 @@ const handler = async function handler(req, res) {
   const origin = firstHeader(req.headers?.origin);
   if (origin && !allowedOrigins().has(origin)) return reply(res, 403, { error: "暂时无法分析，请稍后再试。" }, origin);
   if (req.method === "OPTIONS") {
-    res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
     if (origin && allowedOrigins().has(origin)) res.setHeader("Access-Control-Allow-Origin", origin);
     return res.status(204).end();
   }
-  if (req.method !== "POST") return reply(res, 405, { error: "暂时无法分析，请稍后再试。" }, origin);
   if (!process.env.DEEPSEEK_API_KEY) return reply(res, 503, { error: "暂时无法分析，请稍后再试。" }, origin);
 
-  const body = parseBody(await readRequestBody(req));
-  const input = typeof body?.input === "string" ? body.input.trim() : "";
+  let input = "";
+  if (req.method === "GET") {
+    input = typeof firstHeader(req.query?.input) === "string" ? firstHeader(req.query.input).trim() : "";
+  } else if (req.method === "POST") {
+    const body = parseBody(await readRequestBody(req));
+    input = typeof body?.input === "string" ? body.input.trim() : "";
+  } else {
+    return reply(res, 405, { error: "暂时无法分析，请稍后再试。" }, origin);
+  }
   if (!input) return reply(res, 400, { error: "暂时无法分析，请稍后再试。" }, origin);
 
   try {

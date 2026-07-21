@@ -97,11 +97,11 @@ export async function analyzeLifeReport(input: string): Promise<LifeReport> {
 
   let response: Response;
   try {
-    response = await fetch(getLifeReportEndpoint(), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ input: trimmedInput }),
-    });
+    const requestUrl = new URL(getLifeReportEndpoint(), "http://localhost");
+    requestUrl.searchParams.set("input", trimmedInput);
+    // This project uses GET for text-only provider calls because its Vercel
+    // runtime can reject JSON request bodies before the function is reached.
+    response = await fetch(requestUrl.toString(), { method: "GET" });
   } catch {
     throw new Error(FALLBACK_ERROR);
   }
