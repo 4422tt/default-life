@@ -3,6 +3,10 @@
     "api/orders/recognize.js": {
       "maxDuration": 55,
       "regions": ["hnd1"]
+    },
+    "api/life-report.js": {
+      "maxDuration": 30,
+      "regions": ["hnd1"]
     }
   }
 }

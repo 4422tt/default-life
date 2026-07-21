@@ -1706,6 +1706,48 @@ button:disabled {
   margin-top: 1.32rem;
 }
 
+.life-report-entry {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  margin-top: 1rem;
+  border: 0;
+  padding: 0.15rem 0;
+  background: transparent;
+  color: #51575e;
+  font-size: 0.78rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  text-align: left;
+  transition: color 160ms ease, transform 160ms ease;
+}
+
+.life-report-entry svg {
+  color: #2e3338;
+}
+
+.life-report-entry em {
+  margin-left: 0.2rem;
+  color: #969ba1;
+  font-size: 0.67rem;
+  font-style: normal;
+  font-weight: 620;
+  letter-spacing: 0.02em;
+}
+
+.life-report-entry:hover {
+  color: #17191c;
+  transform: translateX(2px);
+}
+
+.life-report-entry:focus-visible,
+.life-report-primary:focus-visible,
+.life-report-secondary:focus-visible,
+.life-report-close:focus-visible {
+  outline: 2px solid #17191c;
+  outline-offset: 3px;
+}
+
 .life-button,
 .life-card-button {
   display: inline-flex;
@@ -2521,6 +2563,11 @@ button:disabled {
     width: 100%;
   }
 
+  .life-report-entry {
+    width: fit-content;
+    margin-top: 0.15rem;
+  }
+
   .life-die-trigger {
     min-height: 11.8rem;
   }
@@ -2599,6 +2646,337 @@ button:disabled {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* AI Life Report: a quiet personal-life feedback layer, not a fitness dashboard. */
+.life-report-overlay {
+  position: fixed;
+  z-index: 80;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgb(20 23 27 / 0.32);
+  backdrop-filter: blur(3px);
+}
+
+.life-report-sheet {
+  width: min(100%, 45rem);
+  max-height: min(90dvh, 48rem);
+  overflow: auto;
+  border: 1px solid #dfe3e7;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 26px 65px rgb(15 19 23 / 0.18);
+}
+
+.life-report-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.55rem 1.65rem 1.2rem;
+  border-bottom: 1px solid #eceef0;
+}
+
+.life-report-header p {
+  margin: 0;
+  color: #727880;
+  font-size: 0.68rem;
+  font-weight: 720;
+  letter-spacing: 0.14em;
+}
+
+.life-report-header h2 {
+  margin: 0.45rem 0 0;
+  color: #17191c;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 720;
+  letter-spacing: -0.055em;
+}
+
+.life-report-close {
+  display: grid;
+  width: 2.45rem;
+  height: 2.45rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid #e0e3e6;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #4d545b;
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+
+.life-report-close:hover:not(:disabled) {
+  border-color: #c4c9cf;
+  background: #f8f8f8;
+}
+
+.life-report-close:disabled { cursor: wait; opacity: 0.48; }
+
+.life-report-input-state,
+.life-report-result {
+  padding: 1.55rem 1.65rem 1.7rem;
+}
+
+.life-report-intro {
+  max-width: 35rem;
+  margin: 0 0 1.35rem;
+  color: #6f767e;
+  font-size: 0.88rem;
+  line-height: 1.7;
+}
+
+.life-report-input-state label {
+  display: block;
+  margin-bottom: 0.58rem;
+  color: #24282d;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.life-report-input-state textarea {
+  display: block;
+  width: 100%;
+  resize: vertical;
+  border: 1px solid #dfe3e6;
+  border-radius: 11px;
+  padding: 0.85rem 0.95rem;
+  background: #ffffff;
+  color: #20242a;
+  font: inherit;
+  font-size: 0.9rem;
+  line-height: 1.65;
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.life-report-input-state textarea::placeholder { color: #969ca3; }
+
+.life-report-input-state textarea:focus {
+  border-color: #5f656c;
+  box-shadow: 0 0 0 3px rgb(23 25 28 / 0.08);
+}
+
+.life-report-input-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.life-report-input-footer > span {
+  max-width: 22rem;
+  color: #858b92;
+  font-size: 0.7rem;
+  line-height: 1.55;
+}
+
+.life-report-primary,
+.life-report-secondary {
+  display: inline-flex;
+  min-height: 2.8rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.48rem;
+  border-radius: 9px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.life-report-primary {
+  flex: 0 0 auto;
+  border: 1px solid #17191c;
+  padding: 0.62rem 0.88rem;
+  background: #17191c;
+  color: #ffffff;
+}
+
+.life-report-primary:hover:not(:disabled) { background: #32363b; border-color: #32363b; }
+.life-report-primary:disabled { cursor: not-allowed; opacity: 0.38; }
+.life-report-primary:active:not(:disabled), .life-report-secondary:active { transform: scale(0.98); }
+
+.life-report-error {
+  margin: 0.75rem 0 0;
+  border: 1px solid #ead6d7;
+  border-radius: 8px;
+  padding: 0.65rem 0.75rem;
+  background: #fffafa;
+  color: #8a5054;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.life-report-loading {
+  display: grid;
+  min-height: 24rem;
+  place-content: center;
+  justify-items: center;
+  padding: 2rem;
+  color: #4e555d;
+  text-align: center;
+}
+
+.life-report-loading svg { color: #1f2327; }
+.life-report-loading strong { margin-top: 1rem; color: #24282d; font-size: 1rem; letter-spacing: -0.035em; }
+.life-report-loading p { margin: 0.5rem 0 0; color: #848a92; font-size: 0.78rem; }
+
+.life-report-loading-lines {
+  display: grid;
+  width: min(14rem, 70vw);
+  gap: 0.45rem;
+  margin-top: 1.5rem;
+}
+
+.life-report-loading-lines i {
+  display: block;
+  height: 0.42rem;
+  border-radius: 999px;
+  background: #eceef0;
+  animation: life-report-load 1.3s ease-in-out infinite;
+}
+
+.life-report-loading-lines i:nth-child(2) { width: 80%; animation-delay: 0.16s; }
+.life-report-loading-lines i:nth-child(3) { width: 63%; animation-delay: 0.32s; }
+
+@keyframes life-report-load {
+  0%, 100% { opacity: 0.45; transform: scaleX(0.96); transform-origin: left; }
+  50% { opacity: 1; transform: scaleX(1); transform-origin: left; }
+}
+
+.life-report-total {
+  border-bottom: 1px solid #eceef0;
+  padding-bottom: 1.25rem;
+}
+
+.life-report-total span,
+.life-report-section-heading > span {
+  color: #5f666e;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.life-report-total strong {
+  display: block;
+  margin-top: 0.35rem;
+  color: #17191c;
+  font-size: clamp(2rem, 4.6vw, 2.75rem);
+  font-weight: 720;
+  letter-spacing: -0.07em;
+}
+
+.life-report-total p {
+  margin: 0.5rem 0 0;
+  color: #858b92;
+  font-size: 0.73rem;
+}
+
+.life-report-foods,
+.life-report-nutrition { margin-top: 1.35rem; }
+
+.life-report-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.life-report-section-heading small { color: #92979e; font-size: 0.68rem; }
+
+.life-report-foods ul {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.life-report-foods li {
+  display: flex;
+  min-height: 4.15rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  border: 1px solid #e6e8eb;
+  border-radius: 10px;
+  padding: 0.72rem 0.8rem;
+}
+
+.life-report-foods li > div { display: grid; gap: 0.25rem; min-width: 0; }
+.life-report-foods strong { overflow: hidden; color: #30353a; font-size: 0.8rem; font-weight: 690; text-overflow: ellipsis; white-space: nowrap; }
+.life-report-foods span { overflow: hidden; color: #8a9097; font-size: 0.67rem; text-overflow: ellipsis; white-space: nowrap; }
+.life-report-foods em { flex: 0 0 auto; color: #555c64; font-size: 0.69rem; font-style: normal; font-weight: 650; white-space: nowrap; }
+
+.life-report-nutrition-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+}
+
+.life-report-nutrition-grid > div {
+  display: grid;
+  gap: 0.22rem;
+  border: 1px solid #e6e8eb;
+  border-radius: 10px;
+  padding: 0.78rem;
+}
+
+.life-report-nutrition-grid span { color: #8b9198; font-size: 0.64rem; font-weight: 720; letter-spacing: 0.05em; text-transform: uppercase; }
+.life-report-nutrition-grid strong { color: #30353a; font-size: 0.78rem; }
+.life-report-nutrition-grid em { margin-top: 0.18rem; color: #24282d; font-size: 0.85rem; font-style: normal; font-weight: 710; }
+.life-report-nutrition-grid small { color: #8b9198; font-size: 0.65rem; }
+
+.life-report-advice {
+  margin-top: 1.35rem;
+  border: 1px solid #e3e6e8;
+  border-radius: 11px;
+  padding: 0.95rem 1rem;
+  background: #f8f9f9;
+}
+
+.life-report-advice > div { display: inline-flex; align-items: center; gap: 0.38rem; color: #31363b; font-size: 0.78rem; font-weight: 710; }
+.life-report-advice p { margin: 0.55rem 0 0; color: #5f666e; font-size: 0.82rem; line-height: 1.7; }
+
+.life-report-result-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1.35rem;
+  border-top: 1px solid #eceef0;
+  padding-top: 1rem;
+}
+
+.life-report-result-footer p { max-width: 24rem; margin: 0; color: #7b8188; font-size: 0.72rem; line-height: 1.5; }
+
+.life-report-secondary {
+  flex: 0 0 auto;
+  border: 1px solid #d4d8dc;
+  padding: 0.6rem 0.78rem;
+  background: #ffffff;
+  color: #34393f;
+}
+
+.life-report-secondary:hover { border-color: #afb5bb; background: #fafafa; }
+
+@media (max-width: 640px) {
+  .life-report-overlay { align-items: end; padding: 0; }
+  .life-report-sheet { width: 100%; max-height: 92dvh; border-bottom: 0; border-radius: 16px 16px 0 0; }
+  .life-report-header, .life-report-input-state, .life-report-result { padding-right: 1rem; padding-left: 1rem; }
+  .life-report-input-footer, .life-report-result-footer { align-items: stretch; flex-direction: column; }
+  .life-report-input-footer > span, .life-report-primary, .life-report-secondary { width: 100%; max-width: none; }
+  .life-report-foods ul { grid-template-columns: 1fr; }
+  .life-report-nutrition-grid { gap: 0.4rem; }
+  .life-report-nutrition-grid > div { padding: 0.65rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .life-report-loading-lines i { animation: none; }
 }
 
 /* Default Life assistant: a compact system companion, not a decorative sticker. */

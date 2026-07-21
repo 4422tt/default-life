@@ -32,6 +32,7 @@ import {
   X,
 } from "@phosphor-icons/react";
 import { DefaultsManager } from "@/components/defaults-manager";
+import { AiLifeReport } from "@/components/ai-life-report";
 import { FoodSprite, PixelDie } from "@/components/game-visuals";
 import { HistoryView } from "@/components/history-view";
 import { ImportLifeView } from "@/components/import-life-view";
@@ -523,6 +524,7 @@ function LandingHomeView({
   const [homeResult, setHomeResult] = useState<RecommendationResult | null>(null);
   const [shownIds, setShownIds] = useState<string[]>([]);
   const [isSavingChoice, setIsSavingChoice] = useState(false);
+  const [isLifeReportOpen, setLifeReportOpen] = useState(false);
   const diceTimerRef = useRef<number | null>(null);
 
   const personalOptions = options.filter((option) => option.active && !option.isSample);
@@ -647,6 +649,11 @@ function LandingHomeView({
             </button>
             <button className="life-button life-button-secondary" type="button" onClick={activateDemo}>查看演示</button>
           </div>
+          <button className="life-report-entry" type="button" onClick={() => setLifeReportOpen(true)}>
+            <Sparkle size={16} weight="regular" />
+            <span>今日生活分析</span>
+            <em>AI Life Report</em>
+          </button>
         </div>
 
         <div className="life-dice-column" aria-label="默认池抽取器">
@@ -785,6 +792,8 @@ function LandingHomeView({
         onUpdateToday={onBegin}
         onUseExampleOrder={onOpenImport}
       />
+
+      <AiLifeReport open={isLifeReportOpen} onClose={() => setLifeReportOpen(false)} />
 
       <section className="life-afterword" id="how-it-works">
         <div><strong>设定默认池</strong><span>留下真正会反复选择的东西。</span></div>
