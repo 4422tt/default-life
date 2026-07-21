@@ -16,6 +16,7 @@ import {
 } from "@phosphor-icons/react";
 import { FoodSprite } from "@/components/game-visuals";
 import { recognizeOrderScreenshot, type GeminiOrderRecognition } from "@/lib/gemini-order-recognition";
+import { prepareOrderScreenshot, supportedOrderImageTypes } from "@/lib/order-screenshot-compression";
 import {
   calculateOrderHistory,
   createLocalImportAnalysis,
@@ -37,7 +38,6 @@ interface ImportLifeViewProps {
 }
 
 const processingSteps = ["正在读取订单...", "正在分析截图", "正在整理菜品信息"];
-const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 const emptyDraft: OrderDraft = { merchantName: "", dishName: "", price: "", category: "", isDemo: false };
 
 export function ImportLifeView({ latestImport, existingOptions, onBack }: ImportLifeViewProps) {
@@ -52,6 +52,7 @@ export function ImportLifeView({ latestImport, existingOptions, onBack }: Import
   const [completedImport, setCompletedImport] = useState<LifeImportRecord>();
   const [ruleSuggestion, setRuleSuggestion] = useState<DefaultRuleSuggestion>();
   const [recognitionNotice, setRecognitionNotice] = useState("");
+  const [uploadNotice, setUploadNotice] = useState("");
   const screenshotInputRef = useRef<HTMLInputElement>(null);
   const processingTimers = useRef<number[]>([]);
   const recognitionRunRef = useRef(0);
@@ -72,23 +73,31 @@ export function ImportLifeView({ latestImport, existingOptions, onBack }: Import
     previews.forEach((preview) => URL.revokeObjectURL(preview.url));
   }, [previews]);
 
-  const addFiles = (incoming: File[]) => {
+  const addFiles = async (incoming: File[]) => {
     let nextError = "";
-    const valid = incoming.filter((file) => {
-      if (!allowedTypes.has(file.type)) {
+    const supported = incoming.filter((file) => {
+      if (!supportedOrderImageTypes.has(file.type)) {
         nextError = "这里只支持 JPG、JPEG、PNG 和 WEBP 图片。";
-        return false;
-      }
-      if (file.size > 3 * 1024 * 1024) {
-        nextError = `${file.name} 超过 3MB，请压缩后重试。`;
         return false;
       }
       return true;
     });
 
+    const prepared = await Promise.all(supported.map(async (file) => {
+      try {
+        return await prepareOrderScreenshot(file);
+      } catch {
+        nextError = `${file.name} 无法自动压缩，请换一张清晰的截图。`;
+        return undefined;
+      }
+    }));
+    const valid = prepared.filter((item): item is NonNullable<typeof item> => Boolean(item));
+    const compressedCount = valid.filter((item) => item.wasCompressed).length;
+
     setError(nextError);
+    setUploadNotice(compressedCount > 0 ? `已自动压缩 ${compressedCount} 张图片，可以继续识别。` : "");
     setFiles((current) => {
-      const combined = [...current, ...valid];
+      const combined = [...current, ...valid.map((item) => item.file)];
       return combined
         .filter((file, index) => combined.findIndex((item) => item.name === file.name && item.size === file.size) === index)
         .slice(0, 12);
@@ -243,6 +252,7 @@ export function ImportLifeView({ latestImport, existingOptions, onBack }: Import
     setFieldErrors({});
     setError("");
     setRecognitionNotice("");
+    setUploadNotice("");
     setCompletedImport(undefined);
     setRuleSuggestion(undefined);
     setPhase("hub");
@@ -264,6 +274,7 @@ export function ImportLifeView({ latestImport, existingOptions, onBack }: Import
         <UploadView
           previews={previews}
           error={error}
+          uploadNotice={uploadNotice}
           inputRef={screenshotInputRef}
           selectedDemoId={selectedDemoId}
           onBack={() => setPhase("hub")}
@@ -338,9 +349,10 @@ function ImportHub({ latestImport, onBack, onOpenUpload, onOpenProfile }: {
   );
 }
 
-function UploadView({ previews, error, inputRef, selectedDemoId, onBack, onFiles, onRemove, onDemoChange, onUseDemo, onContinue }: {
+function UploadView({ previews, error, uploadNotice, inputRef, selectedDemoId, onBack, onFiles, onRemove, onDemoChange, onUseDemo, onContinue }: {
   previews: Array<{ file: File; url: string }>;
   error: string;
+  uploadNotice: string;
   inputRef: RefObject<HTMLInputElement | null>;
   selectedDemoId: string;
   onBack: () => void;
@@ -353,7 +365,7 @@ function UploadView({ previews, error, inputRef, selectedDemoId, onBack, onFiles
   return (
     <>
       <button className="app-button app-button-quiet -ml-3 min-h-10 px-3 text-sm" onClick={onBack}><ArrowLeft size={17} /> 返回</button>
-      <div className="mt-7 max-w-2xl"><h1 className="text-3xl font-semibold tracking-[-0.04em] md:text-5xl">导入外卖截图</h1><p className="mt-4 text-sm leading-6 text-[var(--muted)] md:text-base">支持 JPG、PNG、WEBP，多图上传，单张不超过 3MB。确认前只需补充商家和菜品名称。</p></div>
+      <div className="mt-7 max-w-2xl"><h1 className="text-3xl font-semibold tracking-[-0.04em] md:text-5xl">导入外卖截图</h1><p className="mt-4 text-sm leading-6 text-[var(--muted)] md:text-base">支持 JPG、PNG、WEBP，多图上传。超过 3MB 的截图会在本机自动压缩后再进行识别。</p></div>
       <div className="mt-8 grid grid-cols-1 gap-5 lg:grid-cols-[1fr_0.72fr]">
         <label className="upload-dropzone grid min-h-72 place-items-center p-7 text-center" htmlFor="life-screenshots" onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); onFiles(Array.from(event.dataTransfer.files)); }}>
           <div><div className="mx-auto grid h-16 w-16 place-items-center rounded-[16px] bg-[var(--accent-soft)] text-[var(--accent-strong)]"><UploadSimple size={30} weight="bold" /></div><h2 className="mt-6 text-xl font-semibold">拖拽图片到这里</h2><p className="mt-2 text-sm leading-6 text-[var(--muted)]">或点击选择图片，最多 12 张</p><span className="app-button app-button-secondary mt-5">选择图片</span></div>
@@ -370,6 +382,7 @@ function UploadView({ previews, error, inputRef, selectedDemoId, onBack, onFiles
         <button className="app-button app-button-secondary mt-4" type="button" onClick={onUseDemo}>使用示例订单 <ArrowRight size={16} /></button>
       </section>
       {error && <p className="mt-4 rounded-[10px] bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]" role="alert">{error}</p>}
+      {uploadNotice && <p className="mt-4 rounded-[10px] border border-[var(--line)] bg-[var(--surface-soft)] p-3 text-sm text-[var(--muted)]" role="status">{uploadNotice}</p>}
       <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between"><p className="text-xs leading-5 text-[var(--muted)]">上传后会进入确认卡。历史次数由系统匹配已有记录，不需要手填。</p><button className="app-button app-button-primary sm:min-w-48" onClick={onContinue}>继续导入 {previews.length || ""} 张截图 <Sparkle size={18} weight="fill" /></button></div>
     </>
   );
